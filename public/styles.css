@@ -84,14 +84,15 @@ a:focus-visible {
   border: 0;
 }
 
-/* Header: name, tagline and location on the left, round photo on the right. */
+/* Header: name, tagline, location and email link on the left, round photo on the right. */
 .hero {
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-areas:
     "name     photo"
     "tagline  tagline"
-    "location location";
+    "location location"
+    "contact  contact";
   column-gap: 1rem;
   row-gap: 0.75rem;
   align-items: center;
@@ -113,6 +114,11 @@ a:focus-visible {
 .location {
   grid-area: location;
   color: var(--muted);
+}
+
+.hero-contact {
+  grid-area: contact;
+  font-weight: 700;
 }
 
 .nowrap {
@@ -215,7 +221,8 @@ h2 {
     grid-template-areas:
       "name     photo"
       "tagline  photo"
-      "location photo";
+      "location photo"
+      "contact  photo";
     column-gap: 2rem;
     row-gap: 0.5rem;
   }
