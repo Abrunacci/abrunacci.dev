@@ -9,8 +9,14 @@ chrome="${CHROME:-chromium}"
 
 render() {
   local src="$1" out="$2" size="$3"
+  rm -f "$out"
+  # Chrome logs harmless GPU and D-Bus noise to stderr; a missing output file is the real failure.
   "$chrome" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
     --window-size="$size" --screenshot="$out" "file://$PWD/tools/$src" >/dev/null 2>&1
+  if [[ ! -s "$out" ]]; then
+    echo "failed to render $out" >&2
+    exit 1
+  fi
   echo "wrote $out"
 }
 
