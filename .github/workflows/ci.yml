@@ -32,5 +32,7 @@ jobs:
           python-version: "3.13"
       - name: Validate HTML
         run: npx --yes html-validate@11.16.0 public tools
+      - name: Test the site checker
+        run: python -m unittest discover -s tools
       - name: Check internal links and publishable files
         run: python tools/check_site.py public

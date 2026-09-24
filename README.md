@@ -16,6 +16,7 @@ public/            everything that gets published, index.html at the root
   og-image.png     share preview (1200×630)
 tools/
   check_site.py    internal links and publishable-files check (used by CI)
+  test_check_site.py tests for check_site.py
   render-images.sh renders og-image.png and apple-touch-icon.png
   *.html           templates for those images
 ```
@@ -39,6 +40,7 @@ The same checks CI runs on every pull request:
 
 ```sh
 npx --yes html-validate@11.16.0 public tools
+python3 -m unittest discover -s tools
 python3 tools/check_site.py public
 ```
 

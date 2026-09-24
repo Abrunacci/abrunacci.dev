@@ -1,22 +1,28 @@
 #!/usr/bin/env python3
 """Checks the publishable directory before it is deployed.
 
-- Every internal reference (href, src, srcset, og:image on this site) in an
-  HTML file points to a file that exists under the site root.
-- Every fragment link (#id) points to an id that exists in the target page.
-- There are no hidden files or directories, except .well-known/.
+- The site root exists and has an index.html.
+- Every internal reference in an HTML file (href, src, srcset, and the share
+  metadata og:image, og:url and twitter:image) points to a file that exists
+  under the site root. References to https://abrunacci.dev count as internal.
+- Every url(...) in a CSS file points to a file that exists.
+- Every fragment link (#id) points to an element with that id in the target
+  page. Legacy <a name> anchors are not recognised.
+- There are no hidden files or directories, except .well-known/ at the root.
 
 Usage: tools/check_site.py [SITE_DIR]   (default: public)
 """
 
+import re
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-SITE_ORIGIN = "https://abrunacci.dev"
+SITE_HOST = "abrunacci.dev"
 URL_ATTRS = {"href", "src"}
-URL_META_PROPERTIES = {"og:image", "og:url", "twitter:image"}
+URL_META_KEYS = {"og:image", "og:url", "twitter:image"}
+CSS_URL = re.compile(r"""url\(\s*(['"]?)([^'")]+)\1\s*\)""")
 
 
 class PageParser(HTMLParser):
@@ -32,8 +38,10 @@ class PageParser(HTMLParser):
         for name in URL_ATTRS & values.keys():
             self.refs.append(values[name])
         if "srcset" in values:
-            self.refs.extend(c.split()[0] for c in values["srcset"].split(",") if c.strip())
-        if tag == "meta" and values.get("property") in URL_META_PROPERTIES:
+            candidates = values["srcset"].split(",")
+            self.refs.extend(c.split()[0] for c in candidates if c.strip())
+        meta_key = values.get("property") or values.get("name")
+        if tag == "meta" and meta_key in URL_META_KEYS:
             self.refs.append(values.get("content", ""))
 
 
@@ -43,58 +51,81 @@ def parse(page: Path) -> PageParser:
     return parser
 
 
-def resolve(ref: str, page: Path, root: Path) -> tuple[Path, str] | None:
-    """Returns (target file, fragment) for internal refs, None for external ones."""
+def is_internal(ref: str) -> bool:
     parts = urlsplit(ref)
-    if parts.scheme or parts.netloc:
-        if f"{parts.scheme}://{parts.netloc}" != SITE_ORIGIN:
-            return None
-    elif ref.startswith(("mailto:", "tel:", "data:")):
-        return None
+    if not parts.scheme and not parts.netloc:
+        return True
+    return parts.scheme in {"", "http", "https"} and parts.hostname == SITE_HOST
 
+
+def resolve(ref: str, source: Path, root: Path) -> tuple[Path, str]:
+    """Returns the file an internal ref points to and its fragment."""
+    parts = urlsplit(ref)
     path = unquote(parts.path)
     if not path:
-        target = page
+        target = source
     elif path.startswith("/"):
         target = root / path.lstrip("/")
     else:
-        target = page.parent / path
-    if target.is_dir() or path.endswith("/"):
+        target = source.parent / path
+    if path.endswith("/") or target.is_dir():
         target = target / "index.html"
-    return target, parts.fragment
+    return target.resolve(), parts.fragment
+
+
+def check_hidden(root: Path) -> list[str]:
+    errors = []
+    for path in sorted(root.rglob("*")):
+        rel = path.relative_to(root)
+        hidden = [i for i, part in enumerate(rel.parts) if part.startswith(".")]
+        if hidden and not (hidden == [0] and rel.parts[0] == ".well-known"):
+            errors.append(f"{rel}: hidden file or directory outside .well-known/")
+    return errors
+
+
+def check_refs(
+    source: Path, refs: list[str], root: Path, pages: dict[Path, PageParser]
+) -> list[str]:
+    errors = []
+    rel_source = source.relative_to(root)
+    for ref in refs:
+        if not is_internal(ref):
+            continue
+        target, fragment = resolve(ref, source, root)
+        if not target.is_relative_to(root):
+            errors.append(f"{rel_source}: {ref!r} points outside the site root")
+        elif not target.is_file():
+            missing = target.relative_to(root)
+            errors.append(f"{rel_source}: {ref!r} is broken (no {missing})")
+        elif fragment and target in pages and fragment not in pages[target].ids:
+            errors.append(f"{rel_source}: {ref!r} points to a missing id")
+    return errors
+
+
+def check_site(root: Path) -> list[str]:
+    root = root.resolve()
+    if not root.is_dir():
+        return [f"{root} is not a directory"]
+
+    errors = check_hidden(root)
+    if not (root / "index.html").is_file():
+        errors.append("index.html is missing at the site root")
+
+    pages = {page.resolve(): parse(page) for page in sorted(root.rglob("*.html"))}
+    for page, parsed in pages.items():
+        errors += check_refs(page, parsed.refs, root, pages)
+    for sheet in sorted(root.rglob("*.css")):
+        refs = [m.group(2) for m in CSS_URL.finditer(sheet.read_text(encoding="utf-8"))]
+        errors += check_refs(sheet.resolve(), refs, root, pages)
+    return errors
 
 
 def main() -> int:
-    root = Path(sys.argv[1] if len(sys.argv) > 1 else "public").resolve()
-    errors: list[str] = []
-
-    for path in sorted(root.rglob("*")):
-        rel = path.relative_to(root)
-        hidden = [p for p in rel.parts if p.startswith(".")]
-        if hidden and hidden[0] != ".well-known":
-            errors.append(f"{rel}: hidden file or directory outside .well-known/")
-
-    pages = {page: parse(page) for page in sorted(root.rglob("*.html"))}
-    for page, parsed in pages.items():
-        rel_page = page.relative_to(root)
-        for ref in parsed.refs:
-            resolved = resolve(ref, page, root)
-            if resolved is None:
-                continue
-            target, fragment = resolved
-            target = target.resolve()
-            if not target.is_relative_to(root):
-                errors.append(f"{rel_page}: {ref!r} points outside the site root")
-            elif not target.is_file():
-                errors.append(f"{rel_page}: {ref!r} is broken (no {target.relative_to(root)})")
-            elif fragment and target.suffix == ".html":
-                target_ids = pages[target].ids if target in pages else parse(target).ids
-                if fragment not in target_ids:
-                    errors.append(f"{rel_page}: {ref!r} points to a missing id")
-
+    root = Path(sys.argv[1] if len(sys.argv) > 1 else "public")
+    errors = check_site(root)
     for error in errors:
         print(f"error: {error}")
-    print(f"checked {len(pages)} page(s) in {root.name}/: {len(errors)} error(s)")
+    print(f"checked {root}/: {len(errors)} error(s)")
     return 1 if errors else 0
 
 
