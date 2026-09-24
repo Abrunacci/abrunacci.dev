@@ -34,6 +34,14 @@ Only `public/` is deployed. It must not contain hidden files, except
 - **Change the share image or the touch icon:** edit the templates in
   `tools/` and run `CHROME=/path/to/chrome tools/render-images.sh`.
 
+## Contact address
+
+The page publishes `hello@abrunacci.dev`. That mailbox does not exist on its
+own: Cloudflare Email Routing forwards it to a personal inbox, and that rule is
+managed in the [infra](https://github.com/Abrunacci/infra) repo together with
+the root domain. The routing has to be live before this page is published, or
+mail sent from it bounces.
+
 ## Checks
 
 The same checks CI runs on every pull request:
