@@ -8,17 +8,17 @@ JavaScript, no third-party requests.
 ## Layout
 
 ```
-public/            everything that gets published, index.html at the root
+public/               everything that gets published, index.html at the root
   index.html
   styles.css
   favicon.svg
   apple-touch-icon.png
-  og-image.png     share preview (1200×630)
+  og-image.png        share preview (1200×630)
 tools/
-  check_site.py    internal links and publishable-files check (used by CI)
-  test_check_site.py tests for check_site.py
-  render-images.sh renders og-image.png and apple-touch-icon.png
-  *.html           templates for those images
+  check_site.py       internal links and publishable-files check (used by CI)
+  test_check_site.py  tests for check_site.py
+  render-images.sh    renders og-image.png and apple-touch-icon.png
+  *.html              templates for those images
 ```
 
 Only `public/` is deployed. It must not contain hidden files, except
