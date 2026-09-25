@@ -1,0 +1,37 @@
+# Version updates, once a month. Security updates are enabled in the
+# repository settings and arrive as soon as an advisory is published,
+# regardless of this schedule. Every pull request runs the required check
+# (Validate HTML and internal links); merging deploys after approval.
+# How to review them: CONTRIBUTING.md, "Dependabot".
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    # Skip releases younger than a week: they are the ones most often
+    # yanked or patched right away.
+    cooldown:
+      default-days: 7
+    groups:
+      # Minor and patch updates together; each major in its own pull
+      # request, since a major of astro can change the built HTML.
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # @astrojs/check supports TypeScript 5 and 6 only. Remove this once it
+      # supports 7.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      # Actions are pinned to commit SHAs with the version in a comment;
+      # Dependabot updates both.
+      github-actions:
+        patterns: ["*"]
