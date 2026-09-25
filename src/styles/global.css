@@ -1,26 +1,50 @@
 :root {
-  --bg: #fbfaf8;
+  --bg: #f8fafc;
   --surface: #ffffff;
-  --border: #e2ded6;
-  --text: #1b1e23;
-  --muted: #4b5563;
-  --accent: #0b57a4;
-  --accent-soft: #dfeaf7;
-  --focus: #0b57a4;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --on-accent: #ffffff;
+  --accent-text: #4338ca;
+  --accent-soft: #eef2ff;
+  --focus: #4f46e5;
+  --shadow-accent: rgb(79 70 229 / 0.6);
+  /* Halo, card edges and marker: the sky blue and the sun of Argentina's
+     flag, softened. */
+  --halo-1: #74acdf;
+  --halo-2: #f6b40e;
+  --halo-3: #a5d8ff;
+  --monogram-from: #2f6fa8;
+  --mark-1: rgb(116 172 223 / 0.45);
+  --mark-2: rgb(246 180 14 / 0.4);
 
   color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #111418;
-    --surface: #181c22;
-    --border: #2b323c;
-    --text: #e8eaed;
-    --muted: #a9b1bc;
-    --accent: #7db4ff;
-    --accent-soft: #1d2a3b;
-    --focus: #7db4ff;
+    --bg: #0b1020;
+    --surface: #111827;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #1f2937;
+    --border-strong: #374151;
+    --accent: #a5b4fc;
+    --accent-hover: #c7d2fe;
+    --on-accent: #0b1020;
+    --accent-text: #a5b4fc;
+    --accent-soft: #1e1b4b;
+    --focus: #a5b4fc;
+    --shadow-accent: rgb(0 0 0 / 0.6);
+    --halo-1: #2f6fa8;
+    --halo-2: #b8860b;
+    --halo-3: #1e4f7a;
+    --monogram-from: #74acdf;
+    --mark-1: rgb(47 111 168 / 0.6);
+    --mark-2: rgb(184 134 11 / 0.5);
   }
 }
 
@@ -36,40 +60,35 @@ html {
 }
 
 body {
-  margin: 0 auto;
-  max-width: 44rem;
-  padding: 2.5rem 1.25rem 3rem;
+  margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-inter);
+  font-feature-settings: "cv11", "ss01";
   font-size: 1.0625rem;
   line-height: 1.6;
 }
 
 h1,
 h2,
-h3 {
-  line-height: 1.2;
-  margin: 0;
-}
-
+h3,
 p {
   margin: 0;
 }
 
-a {
-  color: var(--accent);
-  text-underline-offset: 0.2em;
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-a:hover {
-  text-decoration-thickness: 2px;
+a {
+  color: inherit;
 }
 
 a:focus-visible {
   outline: 3px solid var(--focus);
   outline-offset: 3px;
-  border-radius: 2px;
 }
 
 .visually-hidden {
@@ -84,175 +103,441 @@ a:focus-visible {
   border: 0;
 }
 
-/* Header: name, tagline, location and email link on the left, round photo on the right. */
-.hero {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-areas:
-    "name     photo"
-    "tagline  tagline"
-    "location location"
-    "contact  contact";
-  column-gap: 1rem;
-  row-gap: 0.75rem;
-  align-items: center;
-}
-
-.hero h1 {
-  grid-area: name;
-  font-size: clamp(2rem, 1.4rem + 3vw, 2.75rem);
-  letter-spacing: -0.02em;
-}
-
-.tagline {
-  grid-area: tagline;
-  font-size: 1.1875rem;
-  font-weight: 600;
-  line-height: 1.4;
-}
-
-.location {
-  grid-area: location;
-  color: var(--muted);
-}
-
-.hero-contact {
-  grid-area: contact;
-  font-weight: 700;
-}
-
 .nowrap {
   white-space: nowrap;
 }
 
-.avatar {
-  grid-area: photo;
-  width: 5.5rem;
-  height: 5.5rem;
-  border-radius: 50%;
+.icon {
+  flex: none;
 }
 
-/* With a photo, .avatar is the <picture> and this its <img>. */
-picture.avatar {
-  display: block;
-  overflow: hidden;
+.page {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* Buttons and links: one primary action (email), secondary ones with a
+   border, and a tonal one for a project's live site. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+  padding: 0.625rem 1.125rem;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.btn--lg {
+  min-height: 3.25rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.0625rem;
+  overflow-wrap: anywhere;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 10px 30px -12px var(--shadow-accent);
+}
+
+.btn--primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn--secondary {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+}
+
+.btn--secondary:hover {
+  border-color: var(--text);
+}
+
+.btn--tonal {
+  min-height: 2.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--accent-soft);
+  border: 1px solid transparent;
+  color: var(--accent-text);
+}
+
+.btn--tonal:hover {
+  border-color: var(--accent-text);
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.25em;
+}
+
+.link:hover {
+  color: var(--text);
+  text-decoration-color: currentColor;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+/* Header: photo (or monogram) on a blurred halo, then name and actions,
+   centered. */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 4.5rem 0 3.5rem;
+  text-align: center;
+}
+
+/* The halo sits on the wrapper, behind the circle: on .avatar itself the
+   entrance animation would paint it over the circle's background. */
+.avatar-wrap {
+  position: relative;
+  isolation: isolate;
+  width: 11rem;
+  height: 11rem;
+  margin-bottom: 1.25rem;
+}
+
+.avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 4px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--border), 0 24px 48px -24px var(--shadow-accent);
+  user-select: none;
+}
+
+.avatar-wrap::before {
+  content: "";
+  position: absolute;
+  inset: -3rem;
+  z-index: -1;
+  border-radius: 50%;
+  background: conic-gradient(from 200deg, var(--halo-1), var(--halo-2), var(--halo-3), var(--halo-1));
+  filter: blur(48px);
+  opacity: 0.55;
 }
 
 .avatar-img {
   display: block;
   width: 100%;
   height: 100%;
+  border-radius: 50%;
   object-fit: cover;
 }
 
-.avatar--placeholder {
-  display: grid;
-  place-items: center;
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-size: 1.75rem;
+.avatar-monogram {
+  font-size: 3.5rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  user-select: none;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, var(--monogram-from), var(--accent));
+  background-clip: text;
+  color: transparent;
 }
 
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+h1 {
+  margin-top: 0.25rem;
+  font-size: clamp(2.75rem, 1.8rem + 5vw, 4.75rem);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.role {
+  font-size: clamp(1.125rem, 1rem + 0.5vw, 1.375rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.tagline,
+.location {
+  color: var(--muted);
+}
+
+.tagline {
+  font-size: 1.1875rem;
+}
+
+/* A marker stroke under the part of the tagline that matters most. */
+.mark {
+  padding: 0 0.1em;
+  border-radius: 0.2em;
+  background: linear-gradient(90deg, var(--mark-1), var(--mark-2)) no-repeat 0 88% / 100% 0.42em;
+  color: var(--text);
+  box-decoration-break: clone;
+}
+
+.location {
+  font-size: 0.9375rem;
+}
+
+.hero .actions {
+  margin-top: 1rem;
+}
+
+.stack {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.stack li {
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+/* Sections */
 main {
-  margin-top: 2rem;
   display: grid;
-  gap: 2.75rem;
+  gap: 4.5rem;
+}
+
+.eyebrow {
+  margin-bottom: 0.5rem;
+  color: var(--accent-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 h2 {
-  font-size: 1.375rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  font-size: clamp(1.75rem, 1.5rem + 1vw, 2.25rem);
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
 }
 
-/* Projects: one <li class="project"> per project. */
+.about {
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+/* Projects: one card per entry of src/data/projects.yaml. */
 .projects {
-  list-style: none;
-  margin: 0;
-  padding: 0;
   display: grid;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .project {
-  display: grid;
-  gap: 0.5rem;
-  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.75rem;
+  border-radius: 1rem;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+/* Gradient edge along the top of every card. */
+.project::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--halo-1), var(--halo-2), var(--halo-3));
+}
+
+.project:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 18px 40px -20px var(--shadow-accent);
 }
 
 .project h3 {
-  font-size: 1.125rem;
+  font-size: 1.3125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.project-summary {
+  color: var(--muted);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.tags li {
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .project-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 1.25rem;
-  font-weight: 600;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  margin-top: auto;
+  padding-top: 0.25rem;
 }
 
+/* Contact: a card with the same halo as the header. */
 .contact {
-  padding: 1.5rem 1.25rem;
-  background: var(--accent-soft);
-  border-radius: 0.75rem;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 3.5rem 1.5rem;
+  border-radius: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.contact::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -22rem;
+  left: 50%;
+  width: 30rem;
+  height: 30rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: conic-gradient(from 200deg, var(--halo-1), var(--halo-2), var(--halo-3), var(--halo-1));
+  filter: blur(70px);
+  opacity: 0.35;
 }
 
 .contact h2 {
-  margin-bottom: 0.5rem;
+  max-width: 32rem;
+  margin: 0 auto 0.75rem;
 }
 
-.email {
-  display: inline-block;
-  margin: 0.75rem 0 1rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-  overflow-wrap: anywhere;
+.contact-text {
+  margin-bottom: 2rem;
+  color: var(--muted);
 }
 
-.profiles {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 1.5rem;
-  font-weight: 600;
+.footer {
+  padding: 2.5rem 0 3rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
 }
 
-@media (min-width: 40rem) {
-  body {
-    padding-top: 4.5rem;
+/* Motion: the header rises in once, and cards lift on hover; neither
+   happens for people who ask for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
   }
 
+  .hero > * {
+    animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+
+  .hero > :nth-child(2) { animation-delay: 0.05s; }
+  .hero > :nth-child(3) { animation-delay: 0.1s; }
+  .hero > :nth-child(4) { animation-delay: 0.15s; }
+  .hero > :nth-child(5) { animation-delay: 0.2s; }
+  .hero > :nth-child(n + 6) { animation-delay: 0.25s; }
+
+  .project:hover {
+    transform: translateY(-3px);
+  }
+}
+
+@media (max-width: 30rem) {
+  .actions {
+    max-width: 22rem;
+    margin-inline: auto;
+  }
+
+  .actions .btn--primary {
+    flex: 1 1 100%;
+  }
+
+  .actions .btn--secondary {
+    flex: 1 1 0;
+  }
+}
+
+@media (min-width: 44rem) {
   .hero {
-    grid-template-areas:
-      "name     photo"
-      "tagline  photo"
-      "location photo"
-      "contact  photo";
-    column-gap: 2rem;
-    row-gap: 0.5rem;
+    padding: 6rem 0 5rem;
   }
 
-  .avatar {
-    width: 8rem;
-    height: 8rem;
+  .avatar-wrap {
+    width: 13rem;
+    height: 13rem;
   }
 
-  .avatar--placeholder {
-    font-size: 2.5rem;
+  .avatar-monogram {
+    font-size: 4.25rem;
   }
 
-  main {
-    margin-top: 3rem;
+  .projects {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .contact {
-    padding: 2rem;
+    padding: 4.5rem 3rem;
   }
 }

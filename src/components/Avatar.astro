@@ -20,22 +20,27 @@ if (extension && !EXTENSIONS.includes(extension)) {
 const photo = paths[0] ? await photos[paths[0]]!() : undefined;
 ---
 
-{
-  photo ? (
-    <Picture
-      pictureAttributes={{ class: "avatar" }}
-      class="avatar-img"
-      src={photo}
-      alt="Portrait of Alejandro Brunacci"
-      formats={["avif", "webp"]}
-      widths={[88, 128, 176, 256]}
-      sizes="(min-width: 40rem) 8rem, 5.5rem"
-      width={128}
-      height={128}
-      fit="cover"
-      loading="eager"
-    />
-  ) : (
-    <div class="avatar avatar--placeholder" aria-hidden="true">AB</div>
-  )
-}
+<div class="avatar-wrap">
+  <div class="avatar">
+    {
+      photo ? (
+        // alt="": the name is the heading right below it.
+        <Picture
+          class="avatar-img"
+          src={photo}
+          alt=""
+          formats={["avif", "webp"]}
+          widths={[176, 208, 352, 416, 528, 624]}
+          sizes="(min-width: 44rem) 13rem, 11rem"
+          width={208}
+          height={208}
+          fit="cover"
+          loading="eager"
+          fetchpriority="high"
+        />
+      ) : (
+        <span class="avatar-monogram" aria-hidden="true">AB</span>
+      )
+    }
+</div>
+</div>
