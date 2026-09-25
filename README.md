@@ -42,6 +42,29 @@ managed in the [infra](https://github.com/Abrunacci/infra) repo together with
 the root domain. The routing has to be live before this page is published, or
 mail sent from it bounces.
 
+## Deploy
+
+`.github/workflows/deploy.yml` publishes `public/` to https://abrunacci.dev on
+every push to `main`, or by hand from the Actions tab (**Run workflow**, on
+`main`). There is no build step:
+
+1. **Check** runs the same checks as CI and keeps `public/` as the run's
+   artifact.
+2. **Deploy to production** waits for approval in the `production`
+   environment. Then it sends that artifact as a tar over SSH to the server,
+   where a key that can only deploy this site publishes it as a new release.
+3. It then checks that the site serves the root and every file of `public/`
+   byte for byte, and fails the run if not.
+
+What was published stays published if any step fails. The environment holds
+two secrets, `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS`. How to create them and
+set up the environment, and the server's rules for what a release may
+contain, are documented in the [infra](https://github.com/Abrunacci/infra)
+repo, "Deploying a project" in `ansible/README.md`.
+
+To redeploy an earlier commit, open its Deploy run and choose **Re-run all
+jobs**: the checks run again on that commit and it is sent as a new release.
+
 ## Checks
 
 The same checks CI runs on every pull request:
