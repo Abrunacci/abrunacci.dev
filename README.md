@@ -3,7 +3,9 @@
 Personal landing page of Alejandro Brunacci, served at https://abrunacci.dev.
 
 One static page built with [Astro](https://astro.build): the output is plain
-HTML with its CSS inline, no JavaScript and no third-party requests.
+HTML with its CSS inline, one font file (Inter, self-hosted from the
+`@fontsource-variable/inter` package), no JavaScript and no third-party
+requests.
 
 ## Layout
 
@@ -15,6 +17,7 @@ src/
   content.config.ts   schema of projects.yaml, checked by the build
   components/
     Avatar.astro      the photo, or a monogram while there is none
+    Icon.astro        inline SVG icons (mail, GitHub, LinkedIn, arrow)
   assets/photo.*      the photo, optional (see below)
 public/               copied as is to the root of the site
   favicon.svg
@@ -28,24 +31,33 @@ tools/
   *.html              templates for those images
 ```
 
+The availability line under the photo and the list of technologies in the
+header are constants at the top of `src/pages/index.astro`; an empty
+availability hides the line.
+
 `npm run build` writes the site to `dist/`, and that is what gets deployed.
 It must not contain hidden files, except `.well-known/`.
 
 The server caches everything under `/assets/` for a year, so a file there must
 never change under the same name. Only the build writes there, with a content
-hash in every name (`photo.4f8cjK8z_Ny5af.avif`). `tools/check_site.py` fails
-on a file under `assets/` without one, and if `public/assets/` exists.
+hash in every name (`photo.4f8cjK8z_Ny5af.avif`,
+`fonts/cb13050e68e771d7.woff2`). `tools/check_site.py` fails on a file under
+`assets/` without one, and if `public/assets/` exists.
 
 ## Common changes
 
 - **Add a project:** add an entry to `src/data/projects.yaml`. The build
-  fails if a field is missing, unknown or not an `https://` URL.
-- **Add the photo:** save a square image (at least 256×256 px) as
+  fails if a field is missing, unknown or not an `https://` URL. Its `stack`
+  lists only what the project really uses.
+- **Add the photo:** save a square image (at least 800×800 px) as
   `src/assets/photo.jpg` (or `.jpeg`, `.png`, `.webp`, `.avif`). Nothing else
   changes: the page shows it instead of the monogram, and the build writes
-  resized AVIF and WebP copies to `/assets/`.
+  resized AVIF and WebP copies to `/assets/`, up to 624 px wide for
+  high-density screens.
 - **Change the share image or the touch icon:** edit the templates in
-  `tools/` and run `CHROME=/path/to/chrome tools/render-images.sh`.
+  `tools/` and run `CHROME=/path/to/chrome tools/render-images.sh` (after
+  `npm ci`: the templates load Inter from `node_modules/`). The favicon is
+  `public/favicon.svg`, edited by hand.
 
 ## Contact address
 

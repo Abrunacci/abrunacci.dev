@@ -122,8 +122,14 @@ class CheckSiteTest(unittest.TestCase):
         self.page()
         self.write("assets/photo.4f8cjK8z_Ny5af.avif", "")
         self.write("assets/index.B7Ca1Qx2.css", "")
+        self.write("assets/fonts/cb13050e68e771d7.woff2", "")
         self.assertEqual(self.errors(), [])
-        for name in ("assets/photo.jpg", "assets/img/photo.v2.jpg"):
+        for name in (
+            "assets/photo.jpg",
+            "assets/img/photo.v2.jpg",
+            "assets/fonts/inter.woff2",
+            "assets/fonts/cb13050e.woff2",
+        ):
             with self.subTest(name=name):
                 self.write(name, "")
                 self.assert_one_error(f"{name}: no content hash")

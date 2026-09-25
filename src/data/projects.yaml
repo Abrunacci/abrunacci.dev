@@ -1,6 +1,7 @@
 # Projects shown on the landing page, sorted by `order` (lower first).
-# Fields: id, title, lang (of the title, if not English), summary,
-# links.live and/or links.source, order. The build fails on unknown fields.
+# Fields: id, title, lang (of the title, if not English), summary, stack
+# (optional), links.live and/or links.source, order. The build fails on
+# unknown fields.
 
 - id: cuanto-cuesta
   title: ¿Cuánto cuesta?
@@ -8,6 +9,8 @@
   summary: >-
     Compares the routes for turning US dollars in Payoneer into Argentine
     pesos, with the fees of every step, to show which one leaves you the most.
+  # What the live site (stage 1, in the browser only) is built with.
+  stack: [TypeScript, React, Vite]
   links:
     live: https://cuanto-cuesta.abrunacci.dev
     source: https://github.com/Abrunacci/cuanto-cuesta
@@ -18,6 +21,7 @@
   summary: >-
     Infrastructure as code for the server that hosts these projects: Terraform
     and Ansible on DigitalOcean and Cloudflare.
+  stack: [Terraform, Ansible, Docker Compose, Caddy, PostgreSQL]
   links:
     source: https://github.com/Abrunacci/infra
   order: 20

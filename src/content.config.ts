@@ -12,6 +12,8 @@ const projects = defineCollection({
       // Language of the title, when it is not English.
       lang: z.string().min(1).optional(),
       summary: z.string(),
+      // Technologies the project really uses, shown as tags.
+      stack: z.array(z.string().min(1)).min(1).optional(),
       links: z
         .object({
           live: z.url({ protocol: /^https$/ }).optional(),

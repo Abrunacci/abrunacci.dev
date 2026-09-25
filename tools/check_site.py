@@ -10,7 +10,8 @@
 - Every fragment link (#id) points to an element with that id in the target
   page. Legacy <a name> anchors are not recognised.
 - There are no hidden files or directories, except .well-known/ at the root.
-- Every file under assets/ has a content hash in its name (name.HASH.ext):
+- Every file under assets/ has a content hash in its name (name.HASH.ext,
+  or HASH.ext with 16 hex digits, as Astro names fonts):
   the server caches assets/ for a year, so a file there must never change
   under the same name. The rule is loose (any 8+ character segment passes),
   so the repository's public/assets/, which the build would copy there under
@@ -32,9 +33,10 @@ SITE_HOST = "abrunacci.dev"
 URL_ATTRS = {"href", "src"}
 URL_META_KEYS = {"og:image", "og:url", "twitter:image"}
 CSS_URL = re.compile(r"""url\(\s*(['"]?)([^'")]+)\1\s*\)""")
-# What Astro writes to assets/: photo.4f8cjK8z_Ny5af.avif, index.B7Ca1Qx2.css
 PUBLIC_DIR = Path(__file__).resolve().parent.parent / "public"
-HASHED_NAME = re.compile(r"\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$")
+# What Astro writes to assets/: photo.4f8cjK8z_Ny5af.avif, index.B7Ca1Qx2.css,
+# and fonts/cb13050e68e771d7.woff2 (a hash of the file's content).
+HASHED_NAME = re.compile(r"(\.[A-Za-z0-9_-]{8,}|^[0-9a-f]{16})\.[A-Za-z0-9]+$")
 
 
 class PageParser(HTMLParser):
