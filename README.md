@@ -2,18 +2,25 @@
 
 Personal landing page of Alejandro Brunacci, served at https://abrunacci.dev.
 
-One static page, hand-written HTML and CSS: no framework, no build step, no
-JavaScript, no third-party requests.
+One static page built with [Astro](https://astro.build): the output is plain
+HTML with its CSS inline, no JavaScript and no third-party requests.
 
 ## Layout
 
 ```
-public/               everything that gets published, index.html at the root
-  index.html
-  styles.css
+src/
+  pages/index.astro   the page
+  styles/global.css   its styles, inlined into the page by the build
+  data/projects.yaml  the projects it lists
+  content.config.ts   schema of projects.yaml, checked by the build
+  components/
+    Avatar.astro      the photo, or a monogram while there is none
+  assets/photo.*      the photo, optional (see below)
+public/               copied as is to the root of the site
   favicon.svg
   apple-touch-icon.png
   og-image.png        share preview (1200×630)
+dist/                 the built site (not committed)
 tools/
   check_site.py       internal links and publishable-files check (used by CI)
   test_check_site.py  tests for check_site.py
@@ -21,19 +28,22 @@ tools/
   *.html              templates for those images
 ```
 
-Only `public/` is deployed. It must not contain hidden files, except
-`.well-known/`.
+`npm run build` writes the site to `dist/`, and that is what gets deployed.
+It must not contain hidden files, except `.well-known/`.
+
+The server caches everything under `/assets/` for a year, so a file there must
+never change under the same name. Only the build writes there, with a content
+hash in every name (`photo.4f8cjK8z_Ny5af.avif`), and `tools/check_site.py`
+fails on any file under `assets/` without one. Do not create `public/assets/`.
 
 ## Common changes
 
-- **Add a project:** copy one `<li class="project">` block in
-  `public/index.html` and edit it.
-- **Add the photo:** save a square image (at least 320×320 px) as
-  `public/img/photo.jpg` and replace the placeholder `<div class="avatar …">`
-  with the `<img>` shown in the comment right above it. Keep files that may
-  change under the same name out of `public/assets/`: the server caches
-  everything there for a year, as files whose names change with their
-  content.
+- **Add a project:** add an entry to `src/data/projects.yaml`. The build
+  fails if a field is missing, unknown or not an `https://` URL.
+- **Add the photo:** save a square image (at least 512×512 px) as
+  `src/assets/photo.jpg` (or `.jpeg`, `.png`, `.webp`, `.avif`). Nothing else
+  changes: the page shows it instead of the monogram, and the build writes
+  resized AVIF and WebP copies to `/assets/`.
 - **Change the share image or the touch icon:** edit the templates in
   `tools/` and run `CHROME=/path/to/chrome tools/render-images.sh`.
 
@@ -47,16 +57,16 @@ mail sent from it bounces.
 
 ## Deploy
 
-`.github/workflows/deploy.yml` publishes `public/` to https://abrunacci.dev on
+`.github/workflows/deploy.yml` publishes the site to https://abrunacci.dev on
 every push to `main`, or by hand from the Actions tab (**Run workflow**, on
-`main`). There is no build step:
+`main`):
 
-1. **Check** runs the same checks as CI and keeps `public/` as the run's
-   artifact.
+1. **Check** builds the site, runs the same checks as CI and keeps `dist/` as
+   the run's artifact.
 2. **Deploy to production** waits for approval in the `production`
    environment. Then it sends that artifact as a tar over SSH to the server,
    where a key that can only deploy this site publishes it as a new release.
-3. It then checks that the site serves the root and every file of `public/`
+3. It then checks that the site serves the root and every file of `dist/`
    byte for byte, and fails the run if not.
 
 If the checks or the upload fail, what was published before stays
@@ -85,14 +95,23 @@ it is sent as a new release. GitHub allows it for 30 days; after that, push a
 revert instead. The same applies when an approval comes more than 7 days
 late: the run's artifact is gone, so re-run all jobs.
 
-## Checks
+## Development
 
-The same checks CI runs on every pull request:
+Needs Node.js 22.12 or later (CI uses 24) and Python 3.12 or later.
 
 ```sh
-npx --yes html-validate@11.16.0 public tools
-python3 -m unittest discover -s tools
-python3 tools/check_site.py public
+npm ci            # install the exact versions in package-lock.json
+npm run dev       # live preview at http://localhost:4321
+npm run build     # build the site into dist/
+npm run preview   # serve dist/ as it will be published
 ```
 
-To preview locally: `python3 -m http.server -d public 8000`.
+## Checks
+
+The same checks CI runs on every pull request, after `npm run build`:
+
+```sh
+npx --no html-validate dist tools
+python3 -m unittest discover -s tools
+python3 tools/check_site.py dist
+```
