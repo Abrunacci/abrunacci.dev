@@ -75,7 +75,7 @@ const linkedin = "https://www.linkedin.com/in/abrunacci/";
         <a class="btn btn--secondary" href={github}><Icon name="github" /><span>GitHub<span class="visually-hidden"> profile</span></span></a>
         <a class="btn btn--secondary" href={linkedin}><Icon name="linkedin" /><span>LinkedIn<span class="visually-hidden"> profile</span></span></a>
       </div>
-      <ul class="stack" aria-label="Stack">
+      <ul class="stack" aria-label="Technologies">
         {stack.map((item) => <li>{item}</li>)}
       </ul>
     </header>
@@ -125,7 +125,7 @@ const linkedin = "https://www.linkedin.com/in/abrunacci/";
         <h2 id="contact-title">Need a senior Python backend engineer?</h2>
         <p class="contact-text">Tell me about your product, your team and what you need built:</p>
         <div class="actions">
-          <a class="btn btn--primary btn--lg" href={`mailto:${email}`}><Icon name="mail" /><span>{email}</span></a>
+          <a class="btn btn--primary btn--lg" href={`mailto:${email}`}><Icon name="mail" /><span>{email.split("@")[0]}@<wbr />{email.split("@")[1]}</span></a>
           <a class="btn btn--secondary" href={github}><Icon name="github" /><span>GitHub<span class="visually-hidden"> profile</span></span></a>
           <a class="btn btn--secondary" href={linkedin}><Icon name="linkedin" /><span>LinkedIn<span class="visually-hidden"> profile</span></span></a>
         </div>

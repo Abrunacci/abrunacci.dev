@@ -11,7 +11,7 @@
   page. Legacy <a name> anchors are not recognised.
 - There are no hidden files or directories, except .well-known/ at the root.
 - Every file under assets/ has a content hash in its name (name.HASH.ext,
-  or HASH.ext with 16 hex digits for fonts):
+  or HASH.ext with 16 hex digits, as Astro names fonts):
   the server caches assets/ for a year, so a file there must never change
   under the same name. The rule is loose (any 8+ character segment passes),
   so the repository's public/assets/, which the build would copy there under

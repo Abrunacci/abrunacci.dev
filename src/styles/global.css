@@ -505,6 +505,16 @@ h2 {
 }
 
 @media (max-width: 30rem) {
+  /* Keeps the email address on one line down to 320 px. */
+  .contact {
+    padding-inline: 1rem;
+  }
+
+  .btn--lg {
+    padding-inline: 1rem;
+    font-size: 1rem;
+  }
+
   .actions {
     max-width: 22rem;
     margin-inline: auto;
