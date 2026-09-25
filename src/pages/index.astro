@@ -24,6 +24,11 @@ if (repeated) {
 const availability = "Available for contract and consulting work";
 const stack = ["Python", "FastAPI", "PostgreSQL", "AWS", "Docker", "Terraform", "Ansible"];
 const email = "hello@abrunacci.dev";
+// Split once: the contact button breaks the address only after the @.
+const [emailUser, emailDomain, ...rest] = email.split("@");
+if (!emailUser || !emailDomain || rest.length > 0) {
+  throw new Error(`Not an email address: ${email}`);
+}
 const github = "https://github.com/Abrunacci";
 const linkedin = "https://www.linkedin.com/in/abrunacci/";
 ---
@@ -125,7 +130,7 @@ const linkedin = "https://www.linkedin.com/in/abrunacci/";
         <h2 id="contact-title">Need a senior Python backend engineer?</h2>
         <p class="contact-text">Tell me about your product, your team and what you need built:</p>
         <div class="actions">
-          <a class="btn btn--primary btn--lg" href={`mailto:${email}`}><Icon name="mail" /><span>{email.split("@")[0]}@<wbr />{email.split("@")[1]}</span></a>
+          <a class="btn btn--primary btn--lg" href={`mailto:${email}`}><Icon name="mail" /><span>{emailUser}@<wbr />{emailDomain}</span></a>
           <a class="btn btn--secondary" href={github}><Icon name="github" /><span>GitHub<span class="visually-hidden"> profile</span></span></a>
           <a class="btn btn--secondary" href={linkedin}><Icon name="linkedin" /><span>LinkedIn<span class="visually-hidden"> profile</span></span></a>
         </div>
