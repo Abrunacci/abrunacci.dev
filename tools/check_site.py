@@ -9,6 +9,8 @@
 - Every fragment link (#id) points to an element with that id in the target
   page. Legacy <a name> anchors are not recognised.
 - There are no hidden files or directories, except .well-known/ at the root.
+- There are no symbolic links: the server rejects them, and the CI artifact
+  would carry whatever they point to on the runner instead.
 
 Usage: tools/check_site.py [SITE_DIR]   (default: public)
 """
@@ -83,6 +85,14 @@ def check_hidden(root: Path) -> list[str]:
     return errors
 
 
+def check_symlinks(root: Path) -> list[str]:
+    return [
+        f"{path.relative_to(root)}: symbolic link"
+        for path in sorted(root.rglob("*"))
+        if path.is_symlink()
+    ]
+
+
 def check_refs(
     source: Path, refs: list[str], root: Path, pages: dict[Path, PageParser]
 ) -> list[str]:
@@ -107,7 +117,7 @@ def check_site(root: Path) -> list[str]:
     if not root.is_dir():
         return [f"{root} is not a directory"]
 
-    errors = check_hidden(root)
+    errors = check_hidden(root) + check_symlinks(root)
     if not (root / "index.html").is_file():
         errors.append("index.html is missing at the site root")
 

@@ -1,0 +1,171 @@
+---
+name: Deploy
+
+# Publishes public/ to https://abrunacci.dev on every push to main, or by
+# hand. There is no build: public/ is the site. The server side (deploy user,
+# one key per project, deploy.sh) lives in the infra repository: see
+# "Deploying a project" in its ansible/README.md.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Nothing by default; each job asks for what it needs.
+permissions: {}
+
+# One deploy at a time. A newer run waits instead of cancelling one that is
+# uploading.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      # Same checks as ci.yml: nothing that fails there can be deployed.
+      - name: Validate HTML
+        run: npx --yes html-validate@11.16.0 public tools
+      - name: Test the site checker
+        run: python -m unittest discover -s tools
+      - name: Check internal links and publishable files
+        run: python tools/check_site.py public
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: site
+          path: public/
+          if-no-files-found: error
+          # Hidden files are uploaded too, so the server's rules decide: it
+          # accepts .well-known/ and rejects any other hidden file, loudly,
+          # instead of the artifact dropping them silently.
+          include-hidden-files: true
+          # An approval that comes after 7 days finds no artifact: then use
+          # "Re-run all jobs", which checks and uploads it again.
+          retention-days: 7
+          # A re-run (redeploying an earlier commit) replaces its own artifact.
+          overwrite: true
+
+  deploy:
+    name: Deploy to production
+    needs: check
+    # The production environment only accepts main; this makes the intent
+    # explicit and skips the approval request for anything else.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # Required reviewers approve each run before this job starts, and only
+    # this job sees the environment's secrets.
+    environment:
+      name: production
+      url: https://abrunacci.dev
+    permissions: {}
+    env:
+      SITE_URL: https://abrunacci.dev/
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: site
+          path: site
+
+      - name: Deploy
+        shell: bash
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$DEPLOY_SSH_KEY" || -z "$DEPLOY_KNOWN_HOSTS" ]]; then
+            echo "::error::DEPLOY_SSH_KEY or DEPLOY_KNOWN_HOSTS is missing in the production environment."
+            exit 1
+          fi
+          ssh_dir="$RUNNER_TEMP/deploy-ssh"
+          # The key exists only while this step runs, readable only by us.
+          trap 'rm -rf "$ssh_dir"' EXIT
+          umask 077
+          mkdir "$ssh_dir"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          # Out of the environment of tar and ssh.
+          unset DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS
+          # The server's identity is always checked against the pinned line.
+          tar -C site -cz . \
+            | ssh -i "$ssh_dir/key" \
+                -o IdentitiesOnly=yes \
+                -o StrictHostKeyChecking=yes \
+                -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+                -o GlobalKnownHostsFile=/dev/null \
+                -o BatchMode=yes \
+                -o ConnectTimeout=15 \
+                deploy@server.abrunacci.dev deploy "$GITHUB_SHA" "$GITHUB_RUN_ID"
+
+      # Also removes the key if the step above was killed before its trap ran.
+      - name: Remove the SSH key
+        if: always()
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/deploy-ssh"
+
+      # The site must serve exactly this commit's public/: the root and every
+      # file, byte for byte. A file missing on the server fails too: outside
+      # /assets/ the server answers with index.html, which does not match,
+      # and under /assets/ with a 404. current switches atomically, so the
+      # retries (the whole check, up to 5 times) only cover the network.
+      - name: Check the published site
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -f site/index.html ]]
+          # URL path of every file, percent-encoded from its bytes (names need
+          # not be UTF-8), paired with the file itself.
+          mapfile -d '' files < <(find site -type f -print0 | sort -z)
+          mapfile -t urls < <(python3 -c '
+          import os, sys, urllib.parse
+          for f in sys.argv[1:]:
+              print(urllib.parse.quote(os.fsencode(f)[len(b"site/"):]))
+          ' "${files[@]}")
+          problem=""
+          for attempt in 1 2 3 4 5; do
+            (( attempt == 1 )) || sleep 3
+            rm -f served.html
+            if ! curl -fsS --max-time 10 -o served.html "$SITE_URL"; then
+              problem="$SITE_URL did not answer (see the curl errors above)."
+              continue
+            fi
+            if ! cmp -s served.html site/index.html; then
+              if grep -q 'en construcción' served.html; then
+                problem="$SITE_URL still serves the placeholder."
+              else
+                problem="$SITE_URL serves something other than this commit's index.html."
+              fi
+              continue
+            fi
+            problem=""
+            for i in "${!files[@]}"; do
+              url="${SITE_URL}${urls[i]}"
+              if ! curl -fsS --max-time 10 -o served.file "$url"; then
+                problem="$url did not answer, or answered with an error."
+                break
+              elif ! cmp -s served.file "${files[i]}"; then
+                problem="$url is not served as committed."
+                break
+              fi
+            done
+            if [[ -z "$problem" ]]; then
+              echo "$SITE_URL serves this commit's public/ (${#files[@]} files)."
+              exit 0
+            fi
+          done
+          echo "::error::$problem"
+          exit 1

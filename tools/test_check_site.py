@@ -1,5 +1,6 @@
 """Tests for check_site.py. Run with: python3 -m unittest discover tools"""
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -113,6 +114,15 @@ class CheckSiteTest(unittest.TestCase):
                 self.write(name, "")
                 self.assertTrue(any("hidden" in e for e in self.errors()))
                 (self.root / name).unlink()
+
+    def test_symlinks(self) -> None:
+        self.page()
+        os.symlink("styles.css", self.root / "link.css")
+        os.symlink(self.root, self.root / "loop")
+        errors = self.errors()
+        self.assertEqual(
+            errors, ["link.css: symbolic link", "loop: symbolic link"], errors
+        )
 
 
 if __name__ == "__main__":
