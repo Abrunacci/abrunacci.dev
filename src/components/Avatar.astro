@@ -6,7 +6,7 @@ import { Picture } from "astro:assets";
 // .webp, .avif) and it replaces the monogram. Astro writes resized AVIF and
 // WebP copies to /assets/ with a hash in their names.
 const photos = import.meta.glob<{ default: ImageMetadata }>(
-  "../assets/photo.{jpg,jpeg,png,webp,avif}",
+  "../assets/photo.{jpg,jpeg,png,webp,avif,JPG,JPEG,PNG,WEBP,AVIF}",
   { eager: true },
 );
 const found = Object.values(photos);

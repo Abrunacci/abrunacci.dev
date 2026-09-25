@@ -11,6 +11,10 @@ const projects = (await getCollection("projects")).sort(
 if (projects.length === 0) {
   throw new Error("No projects loaded from src/data/projects.yaml");
 }
+const orders = projects.map((project) => project.data.order);
+if (new Set(orders).size !== orders.length) {
+  throw new Error("Two projects in src/data/projects.yaml share an order");
+}
 ---
 
 <!DOCTYPE html>
@@ -62,20 +66,26 @@ if (projects.length === 0) {
       <h2 id="projects-title">Projects</h2>
       <ul class="projects">
         {/* Projects come from src/data/projects.yaml. */}
-        {projects.map(({ data: project }) => (
-          <li class="project">
-            <h3 lang={project.lang}>{project.title}</h3>
-            <p>{project.summary}</p>
-            <p class="project-links">
-              {project.links.live && (
-                <a href={project.links.live}>Live site<span class="visually-hidden"> of <span lang={project.lang}>{project.title}</span></span></a>
-              )}
-              {project.links.source && (
-                <a href={project.links.source}>Source code on GitHub<span class="visually-hidden">: <span lang={project.lang}>{project.title}</span></span></a>
-              )}
-            </p>
-          </li>
-        ))}
+        {projects.map(({ data: project }) => {
+          // Only a title in another language needs its own element.
+          const title = project.lang
+            ? <span lang={project.lang}>{project.title}</span>
+            : project.title;
+          return (
+            <li class="project">
+              <h3 lang={project.lang}>{project.title}</h3>
+              <p>{project.summary}</p>
+              <p class="project-links">
+                {project.links.live && (
+                  <a href={project.links.live}>Live site<span class="visually-hidden"> of {title}</span></a>
+                )}
+                {project.links.source && (
+                  <a href={project.links.source}>Source code on GitHub<span class="visually-hidden">: {title}</span></a>
+                )}
+              </p>
+            </li>
+          );
+        })}
       </ul>
     </section>
 

@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from check_site import check_site
+from check_site import check_public_assets, check_site
 
 PAGE = """<!DOCTYPE html>
 <html lang="en">
@@ -126,6 +126,26 @@ class CheckSiteTest(unittest.TestCase):
                 self.write(name, "")
                 self.assert_one_error(f"{name}: no content hash")
                 (self.root / name).unlink()
+
+    def test_public_assets_must_not_exist(self) -> None:
+        public = Path(self.tmp.name) / "repo-public"
+        public.mkdir()
+        self.assertEqual(check_public_assets(public), [])
+        (public / "assets").mkdir()
+        self.assertEqual(len(check_public_assets(public)), 1)
+
+    def test_url_in_style_element_of_a_subpage(self) -> None:
+        self.write("fonts/x.woff2", "")
+        self.page(
+            '<style>@font-face { src: url("../fonts/x.woff2"); }</style>',
+            "sub/index.html",
+        )
+        self.page()
+        self.assertEqual(self.errors(), [])
+        self.page(
+            '<style>@font-face { src: url("fonts/x.woff2"); }</style>', "sub/index.html"
+        )
+        self.assert_one_error("sub/index.html: 'fonts/x.woff2' is broken")
 
     def test_hidden_files(self) -> None:
         self.page()

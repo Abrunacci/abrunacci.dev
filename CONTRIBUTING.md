@@ -43,5 +43,6 @@ common changes and the deploy.
 ## Caching
 
 The server caches `/assets/` for a year. Only the build writes there, with a
-content hash in every file name; `tools/check_site.py` fails otherwise. Files
-in `public/` keep their names and are published outside `/assets/`.
+content hash in every file name; `tools/check_site.py` fails otherwise, and if
+`public/assets/` exists. Files in `public/` keep their names and are published
+outside `/assets/`.

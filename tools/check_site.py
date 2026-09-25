@@ -12,7 +12,9 @@
 - There are no hidden files or directories, except .well-known/ at the root.
 - Every file under assets/ has a content hash in its name (name.HASH.ext):
   the server caches assets/ for a year, so a file there must never change
-  under the same name.
+  under the same name. The rule is loose (any 8+ character segment passes),
+  so the repository's public/assets/, which the build would copy there under
+  fixed names, must not exist at all.
 - There are no symbolic links: the server rejects them, and the CI artifact
   would carry whatever they point to on the runner instead.
 
@@ -30,6 +32,7 @@ URL_ATTRS = {"href", "src"}
 URL_META_KEYS = {"og:image", "og:url", "twitter:image"}
 CSS_URL = re.compile(r"""url\(\s*(['"]?)([^'")]+)\1\s*\)""")
 # What Astro writes to assets/: photo.4f8cjK8z_Ny5af.avif, index.B7Ca1Qx2.css
+PUBLIC_DIR = Path(__file__).resolve().parent.parent / "public"
 HASHED_NAME = re.compile(r"\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$")
 
 
@@ -116,6 +119,12 @@ def check_asset_names(root: Path) -> list[str]:
     ]
 
 
+def check_public_assets(public: Path) -> list[str]:
+    if (public / "assets").exists():
+        return ["public/assets/ exists: only the build may write to assets/"]
+    return []
+
+
 def check_symlinks(root: Path) -> list[str]:
     return [
         f"{path.relative_to(root)}: symbolic link"
@@ -163,7 +172,7 @@ def check_site(root: Path) -> list[str]:
 
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else "dist")
-    errors = check_site(root)
+    errors = check_site(root) + check_public_assets(PUBLIC_DIR)
     for error in errors:
         print(f"error: {error}")
     print(f"checked {root}/: {len(errors)} error(s)")

@@ -33,14 +33,14 @@ It must not contain hidden files, except `.well-known/`.
 
 The server caches everything under `/assets/` for a year, so a file there must
 never change under the same name. Only the build writes there, with a content
-hash in every name (`photo.4f8cjK8z_Ny5af.avif`), and `tools/check_site.py`
-fails on any file under `assets/` without one. Do not create `public/assets/`.
+hash in every name (`photo.4f8cjK8z_Ny5af.avif`). `tools/check_site.py` fails
+on a file under `assets/` without one, and if `public/assets/` exists.
 
 ## Common changes
 
 - **Add a project:** add an entry to `src/data/projects.yaml`. The build
   fails if a field is missing, unknown or not an `https://` URL.
-- **Add the photo:** save a square image (at least 512×512 px) as
+- **Add the photo:** save a square image (at least 256×256 px) as
   `src/assets/photo.jpg` (or `.jpeg`, `.png`, `.webp`, `.avif`). Nothing else
   changes: the page shows it instead of the monogram, and the build writes
   resized AVIF and WebP copies to `/assets/`.
@@ -97,7 +97,7 @@ late: the run's artifact is gone, so re-run all jobs.
 
 ## Development
 
-Needs Node.js 22.12 or later (CI uses 24) and Python 3.12 or later.
+Needs Node.js 22.22+ or 24.8+ (CI uses 24) and Python 3.12 or later.
 
 ```sh
 npm ci            # install the exact versions in package-lock.json
