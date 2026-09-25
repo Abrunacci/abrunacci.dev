@@ -1,10 +1,10 @@
 ---
 name: Deploy
 
-# Publishes public/ to https://abrunacci.dev on every push to main, or by
-# hand. There is no build: public/ is the site. The server side (deploy user,
-# one key per project, deploy.sh) lives in the infra repository: see
-# "Deploying a project" in its ansible/README.md.
+# Builds the site with Astro and publishes dist/ to https://abrunacci.dev on
+# every push to main, or by hand. The server side (deploy user, one key per
+# project, deploy.sh) lives in the infra repository: see "Deploying a project"
+# in its ansible/README.md.
 on:
   push:
     branches: [main]
@@ -26,6 +26,8 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+    env:
+      ASTRO_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -33,20 +35,26 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
+          # Caches npm's download cache, keyed on package-lock.json.
+          cache: npm
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
+      - name: Install dependencies
+        run: npm ci
+      - name: Build
+        run: npm run build
       # Same checks as ci.yml: nothing that fails there can be deployed.
       - name: Validate HTML
-        run: npx --yes html-validate@11.16.0 public tools
+        run: npx --no html-validate dist tools
       - name: Test the site checker
         run: python -m unittest discover -s tools
       - name: Check internal links and publishable files
-        run: python tools/check_site.py public
+        run: python tools/check_site.py dist
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: site
-          path: public/
+          path: dist/
           if-no-files-found: error
           # Hidden files are uploaded too, so the server's rules decide: it
           # accepts .well-known/ and rejects any other hidden file, loudly,
@@ -117,7 +125,7 @@ jobs:
         shell: bash
         run: rm -rf "$RUNNER_TEMP/deploy-ssh"
 
-      # The site must serve exactly this commit's public/: the root and every
+      # The site must serve exactly this commit's build: the root and every
       # file, byte for byte. A file missing on the server fails too: outside
       # /assets/ the server answers with index.html, which does not match,
       # and under /assets/ with a 404. current switches atomically, so the
@@ -163,7 +171,7 @@ jobs:
               fi
             done
             if [[ -z "$problem" ]]; then
-              echo "$SITE_URL serves this commit's public/ (${#files[@]} files)."
+              echo "$SITE_URL serves this commit's build (${#files[@]} files)."
               exit 0
             fi
           done
