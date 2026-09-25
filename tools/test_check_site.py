@@ -107,6 +107,26 @@ class CheckSiteTest(unittest.TestCase):
         self.write("styles.css", "body { background: url('missing.png'); }")
         self.assert_one_error("styles.css: 'missing.png' is broken")
 
+    def test_broken_url_in_style_element(self) -> None:
+        self.page('<style>@font-face { src: url("fonts/x.woff2"); }</style>')
+        self.assert_one_error("index.html: 'fonts/x.woff2' is broken")
+
+    def test_url_in_style_element_resolves_from_the_page(self) -> None:
+        self.write("fonts/x.woff2", "")
+        self.page("<style>@font-face { src: url(fonts/x.woff2); }</style>")
+        self.assertEqual(self.errors(), [])
+
+    def test_assets_need_a_hash_in_the_name(self) -> None:
+        self.page()
+        self.write("assets/photo.4f8cjK8z_Ny5af.avif", "")
+        self.write("assets/index.B7Ca1Qx2.css", "")
+        self.assertEqual(self.errors(), [])
+        for name in ("assets/photo.jpg", "assets/img/photo.v2.jpg"):
+            with self.subTest(name=name):
+                self.write(name, "")
+                self.assert_one_error(f"{name}: no content hash")
+                (self.root / name).unlink()
+
     def test_hidden_files(self) -> None:
         self.page()
         for name in (".env", "sub/.well-known/x", ".well-known/.secret"):

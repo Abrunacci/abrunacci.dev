@@ -5,14 +5,18 @@
 - Every internal reference in an HTML file (href, src, srcset, and the share
   metadata og:image, og:url and twitter:image) points to a file that exists
   under the site root. References to https://abrunacci.dev count as internal.
-- Every url(...) in a CSS file points to a file that exists.
+- Every url(...) in a CSS file or in a <style> element points to a file that
+  exists.
 - Every fragment link (#id) points to an element with that id in the target
   page. Legacy <a name> anchors are not recognised.
 - There are no hidden files or directories, except .well-known/ at the root.
+- Every file under assets/ has a content hash in its name (name.HASH.ext):
+  the server caches assets/ for a year, so a file there must never change
+  under the same name.
 - There are no symbolic links: the server rejects them, and the CI artifact
   would carry whatever they point to on the runner instead.
 
-Usage: tools/check_site.py [SITE_DIR]   (default: public)
+Usage: tools/check_site.py [SITE_DIR]   (default: dist)
 """
 
 import re
@@ -25,6 +29,8 @@ SITE_HOST = "abrunacci.dev"
 URL_ATTRS = {"href", "src"}
 URL_META_KEYS = {"og:image", "og:url", "twitter:image"}
 CSS_URL = re.compile(r"""url\(\s*(['"]?)([^'")]+)\1\s*\)""")
+# What Astro writes to assets/: photo.4f8cjK8z_Ny5af.avif, index.B7Ca1Qx2.css
+HASHED_NAME = re.compile(r"\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9]+$")
 
 
 class PageParser(HTMLParser):
@@ -32,8 +38,12 @@ class PageParser(HTMLParser):
         super().__init__()
         self.refs: list[str] = []
         self.ids: set[str] = set()
+        # Text of the <style> element being read, None outside one.
+        self.style: list[str] | None = None
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "style":
+            self.style = []
         values = {name: value or "" for name, value in attrs}
         if "id" in values:
             self.ids.add(values["id"])
@@ -45,6 +55,19 @@ class PageParser(HTMLParser):
         meta_key = values.get("property") or values.get("name")
         if tag == "meta" and meta_key in URL_META_KEYS:
             self.refs.append(values.get("content", ""))
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag == "style" and self.style is not None:
+            self.refs.extend(css_urls("".join(self.style)))
+            self.style = None
+
+    def handle_data(self, data: str) -> None:
+        if self.style is not None:
+            self.style.append(data)
+
+
+def css_urls(css: str) -> list[str]:
+    return [m.group(2) for m in CSS_URL.finditer(css)]
 
 
 def parse(page: Path) -> PageParser:
@@ -85,6 +108,14 @@ def check_hidden(root: Path) -> list[str]:
     return errors
 
 
+def check_asset_names(root: Path) -> list[str]:
+    return [
+        f"{path.relative_to(root)}: no content hash in the name under assets/"
+        for path in sorted((root / "assets").rglob("*"))
+        if path.is_file() and not HASHED_NAME.search(path.name)
+    ]
+
+
 def check_symlinks(root: Path) -> list[str]:
     return [
         f"{path.relative_to(root)}: symbolic link"
@@ -117,7 +148,7 @@ def check_site(root: Path) -> list[str]:
     if not root.is_dir():
         return [f"{root} is not a directory"]
 
-    errors = check_hidden(root) + check_symlinks(root)
+    errors = check_hidden(root) + check_symlinks(root) + check_asset_names(root)
     if not (root / "index.html").is_file():
         errors.append("index.html is missing at the site root")
 
@@ -125,13 +156,13 @@ def check_site(root: Path) -> list[str]:
     for page, parsed in pages.items():
         errors += check_refs(page, parsed.refs, root, pages)
     for sheet in sorted(root.rglob("*.css")):
-        refs = [m.group(2) for m in CSS_URL.finditer(sheet.read_text(encoding="utf-8"))]
+        refs = css_urls(sheet.read_text(encoding="utf-8"))
         errors += check_refs(sheet.resolve(), refs, root, pages)
     return errors
 
 
 def main() -> int:
-    root = Path(sys.argv[1] if len(sys.argv) > 1 else "public")
+    root = Path(sys.argv[1] if len(sys.argv) > 1 else "dist")
     errors = check_site(root)
     for error in errors:
         print(f"error: {error}")
