@@ -1,11 +1,13 @@
 """Tests for check_site.py. Run with: python3 -m unittest discover tools"""
 
+import contextlib
+import io
 import os
 import tempfile
 import unittest
 from pathlib import Path
 
-from check_site import check_site
+from check_site import check_public_assets, check_site, main
 
 PAGE = """<!DOCTYPE html>
 <html lang="en">
@@ -106,6 +108,55 @@ class CheckSiteTest(unittest.TestCase):
         self.page()
         self.write("styles.css", "body { background: url('missing.png'); }")
         self.assert_one_error("styles.css: 'missing.png' is broken")
+
+    def test_broken_url_in_style_element(self) -> None:
+        self.page('<style>@font-face { src: url("fonts/x.woff2"); }</style>')
+        self.assert_one_error("index.html: 'fonts/x.woff2' is broken")
+
+    def test_url_in_style_element_resolves_from_the_page(self) -> None:
+        self.write("fonts/x.woff2", "")
+        self.page("<style>@font-face { src: url(fonts/x.woff2); }</style>")
+        self.assertEqual(self.errors(), [])
+
+    def test_assets_need_a_hash_in_the_name(self) -> None:
+        self.page()
+        self.write("assets/photo.4f8cjK8z_Ny5af.avif", "")
+        self.write("assets/index.B7Ca1Qx2.css", "")
+        self.assertEqual(self.errors(), [])
+        for name in ("assets/photo.jpg", "assets/img/photo.v2.jpg"):
+            with self.subTest(name=name):
+                self.write(name, "")
+                self.assert_one_error(f"{name}: no content hash")
+                (self.root / name).unlink()
+
+    def test_public_assets_must_not_exist(self) -> None:
+        public = Path(self.tmp.name) / "repo-public"
+        public.mkdir()
+        self.assertEqual(check_public_assets(public), [])
+        (public / "assets").mkdir()
+        self.assertEqual(len(check_public_assets(public)), 1)
+
+    def test_main_checks_public_assets(self) -> None:
+        self.page()
+        public = Path(self.tmp.name) / "repo-public"
+        (public / "assets").mkdir(parents=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(main(["check_site.py", str(self.root)], public), 1)
+            (public / "assets").rmdir()
+            self.assertEqual(main(["check_site.py", str(self.root)], public), 0)
+
+    def test_url_in_style_element_of_a_subpage(self) -> None:
+        self.write("fonts/x.woff2", "")
+        self.page(
+            '<style>@font-face { src: url("../fonts/x.woff2"); }</style>',
+            "sub/index.html",
+        )
+        self.page()
+        self.assertEqual(self.errors(), [])
+        self.page(
+            '<style>@font-face { src: url("fonts/x.woff2"); }</style>', "sub/index.html"
+        )
+        self.assert_one_error("sub/index.html: 'fonts/x.woff2' is broken")
 
     def test_hidden_files(self) -> None:
         self.page()

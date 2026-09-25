@@ -1,3 +1,24 @@
+---
+import { getCollection } from "astro:content";
+import Avatar from "../components/Avatar.astro";
+import "../styles/global.css";
+
+const projects = (await getCollection("projects")).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+// The file loader only logs a YAML error: fail the build instead of
+// publishing a page without projects.
+if (projects.length === 0) {
+  throw new Error("No projects loaded from src/data/projects.yaml");
+}
+const repeated = projects.find(
+  (project, i) => i > 0 && project.data.order === projects[i - 1]!.data.order,
+);
+if (repeated) {
+  throw new Error(`order ${repeated.data.order} is used twice in src/data/projects.yaml`);
+}
+---
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,18 +48,12 @@
 
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="hero">
     <h1>Alejandro Brunacci</h1>
     <p class="tagline">Senior Backend Engineer · Python &amp; FastAPI · Backends for GenAI and data products</p>
-    <!--
-      Photo: when img/photo.jpg exists (square, at least 320×320 px),
-      replace the placeholder div below with:
-      <img class="avatar" src="img/photo.jpg" alt="" width="160" height="160">
-    -->
-    <div class="avatar avatar--placeholder" aria-hidden="true">AB</div>
+    <Avatar />
     <p class="location">Argentina · Remote · <span class="nowrap">US time zone overlap</span></p>
     <p class="hero-contact"><a href="mailto:hello@abrunacci.dev">Email me<span class="visually-hidden"> at hello@abrunacci.dev</span></a></p>
   </header>
@@ -52,22 +67,27 @@
     <section aria-labelledby="projects-title">
       <h2 id="projects-title">Projects</h2>
       <ul class="projects">
-        <!-- To add a project, copy one <li class="project"> block. -->
-        <li class="project">
-          <h3 lang="es">¿Cuánto cuesta?</h3>
-          <p>Compares the routes for turning US dollars in Payoneer into Argentine pesos, with the fees of every step, to show which one leaves you the most.</p>
-          <p class="project-links">
-            <a href="https://cuanto-cuesta.abrunacci.dev">Live site<span class="visually-hidden"> of <span lang="es">¿Cuánto cuesta?</span></span></a>
-            <a href="https://github.com/Abrunacci/cuanto-cuesta">Source code on GitHub<span class="visually-hidden">: <span lang="es">¿Cuánto cuesta?</span></span></a>
-          </p>
-        </li>
-        <li class="project">
-          <h3>infra</h3>
-          <p>Infrastructure as code for the server that hosts these projects: Terraform and Ansible on DigitalOcean and Cloudflare.</p>
-          <p class="project-links">
-            <a href="https://github.com/Abrunacci/infra">Source code on GitHub<span class="visually-hidden">: infra</span></a>
-          </p>
-        </li>
+        {/* Projects come from src/data/projects.yaml. */}
+        {projects.map(({ data: project }) => {
+          // Only a title in another language needs its own element.
+          const title = project.lang
+            ? <span lang={project.lang}>{project.title}</span>
+            : project.title;
+          return (
+            <li class="project">
+              <h3 lang={project.lang}>{project.title}</h3>
+              <p>{project.summary}</p>
+              <p class="project-links">
+                {project.links.live && (
+                  <a href={project.links.live}>Live site<span class="visually-hidden"> of {title}</span></a>
+                )}
+                {project.links.source && (
+                  <a href={project.links.source}>Source code on GitHub<span class="visually-hidden">: {title}</span></a>
+                )}
+              </p>
+            </li>
+          );
+        })}
       </ul>
     </section>
 
