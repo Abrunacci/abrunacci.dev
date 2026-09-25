@@ -11,9 +11,11 @@ const projects = (await getCollection("projects")).sort(
 if (projects.length === 0) {
   throw new Error("No projects loaded from src/data/projects.yaml");
 }
-const orders = projects.map((project) => project.data.order);
-if (new Set(orders).size !== orders.length) {
-  throw new Error("Two projects in src/data/projects.yaml share an order");
+const repeated = projects.find(
+  (project, i) => i > 0 && project.data.order === projects[i - 1]!.data.order,
+);
+if (repeated) {
+  throw new Error(`order ${repeated.data.order} is used twice in src/data/projects.yaml`);
 }
 ---
 

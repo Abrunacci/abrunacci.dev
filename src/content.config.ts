@@ -10,7 +10,7 @@ const projects = defineCollection({
       id: z.string(),
       title: z.string(),
       // Language of the title, when it is not English.
-      lang: z.string().optional(),
+      lang: z.string().min(1).optional(),
       summary: z.string(),
       links: z
         .object({

@@ -14,7 +14,8 @@
   the server caches assets/ for a year, so a file there must never change
   under the same name. The rule is loose (any 8+ character segment passes),
   so the repository's public/assets/, which the build would copy there under
-  fixed names, must not exist at all.
+  fixed names, must not exist at all (checked next to this script, so run it
+  from a checkout, not from a copy of the built site alone).
 - There are no symbolic links: the server rejects them, and the CI artifact
   would carry whatever they point to on the runner instead.
 
@@ -170,9 +171,9 @@ def check_site(root: Path) -> list[str]:
     return errors
 
 
-def main() -> int:
-    root = Path(sys.argv[1] if len(sys.argv) > 1 else "dist")
-    errors = check_site(root) + check_public_assets(PUBLIC_DIR)
+def main(argv: list[str], public: Path = PUBLIC_DIR) -> int:
+    root = Path(argv[1] if len(argv) > 1 else "dist")
+    errors = check_site(root) + check_public_assets(public)
     for error in errors:
         print(f"error: {error}")
     print(f"checked {root}/: {len(errors)} error(s)")
@@ -180,4 +181,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv))

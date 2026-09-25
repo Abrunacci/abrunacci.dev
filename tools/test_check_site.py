@@ -1,11 +1,13 @@
 """Tests for check_site.py. Run with: python3 -m unittest discover tools"""
 
+import contextlib
+import io
 import os
 import tempfile
 import unittest
 from pathlib import Path
 
-from check_site import check_public_assets, check_site
+from check_site import check_public_assets, check_site, main
 
 PAGE = """<!DOCTYPE html>
 <html lang="en">
@@ -133,6 +135,15 @@ class CheckSiteTest(unittest.TestCase):
         self.assertEqual(check_public_assets(public), [])
         (public / "assets").mkdir()
         self.assertEqual(len(check_public_assets(public)), 1)
+
+    def test_main_checks_public_assets(self) -> None:
+        self.page()
+        public = Path(self.tmp.name) / "repo-public"
+        (public / "assets").mkdir(parents=True)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(main(["check_site.py", str(self.root)], public), 1)
+            (public / "assets").rmdir()
+            self.assertEqual(main(["check_site.py", str(self.root)], public), 0)
 
     def test_url_in_style_element_of_a_subpage(self) -> None:
         self.write("fonts/x.woff2", "")
