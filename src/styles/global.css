@@ -200,7 +200,7 @@ a:focus-visible {
   gap: 0.75rem;
 }
 
-/* Header: photo (or monogram) on a blurred halo, then name and actions,
+/* Header: photo (or monogram) on a soft halo, then name and actions,
    centered. */
 .hero {
   display: flex;
@@ -234,15 +234,25 @@ a:focus-visible {
   user-select: none;
 }
 
+/* No filter: blur() here: on iPhone Safari the blurred halo showed hard
+   rectangular edges, likely because iOS WebKit can clip a blur to its
+   compositing layer. A radial mask fades the colors out instead, reaching
+   full transparency at the box's edge, and the box is never wider than the
+   page's content, so it cannot add horizontal scroll. */
 .avatar-wrap::before {
   content: "";
   position: absolute;
-  inset: -3rem;
   z-index: -1;
-  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  width: min(25rem, 100vw - 2.5rem);
+  aspect-ratio: 1;
+  translate: -50% -50%;
   background: conic-gradient(from 200deg, var(--halo-1), var(--halo-2), var(--halo-3), var(--halo-1));
-  filter: blur(48px);
+  -webkit-mask-image: radial-gradient(closest-side, #000 40%, rgb(0 0 0 / 0.5) 65%, transparent);
+  mask-image: radial-gradient(closest-side, #000 40%, rgb(0 0 0 / 0.5) 65%, transparent);
   opacity: 0.55;
+  pointer-events: none;
 }
 
 .avatar-img {
@@ -447,19 +457,21 @@ h2 {
   text-align: center;
 }
 
+/* Same technique as the header's halo: a masked gradient, no blur. */
 .contact::before {
   content: "";
   position: absolute;
   z-index: -1;
-  top: -22rem;
+  top: -20rem;
   left: 50%;
-  width: 30rem;
-  height: 30rem;
-  transform: translateX(-50%);
-  border-radius: 50%;
+  width: 36rem;
+  aspect-ratio: 1;
+  translate: -50% 0;
   background: conic-gradient(from 200deg, var(--halo-1), var(--halo-2), var(--halo-3), var(--halo-1));
-  filter: blur(70px);
+  -webkit-mask-image: radial-gradient(closest-side, #000 30%, rgb(0 0 0 / 0.5) 60%, transparent);
+  mask-image: radial-gradient(closest-side, #000 30%, rgb(0 0 0 / 0.5) 60%, transparent);
   opacity: 0.35;
+  pointer-events: none;
 }
 
 .contact h2 {
@@ -490,7 +502,9 @@ h2 {
   }
 
   .hero > * {
-    animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    /* backwards, not both: once it ends the animation no longer applies,
+       so the browser can drop the header elements' compositing layers. */
+    animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
   }
 
   .hero > :nth-child(2) { animation-delay: 0.05s; }
