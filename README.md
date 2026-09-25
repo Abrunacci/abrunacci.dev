@@ -14,7 +14,8 @@ src/
   pages/index.astro   the page
   styles/global.css   its styles, inlined into the page by the build
   data/projects.yaml  the projects it lists
-  content.config.ts   schema of projects.yaml, checked by the build
+  content.config.ts   schema of projects.yaml, checked by the build and by
+                      npm run check
   components/
     Avatar.astro      the photo, or a monogram while there is none
     Icon.astro        inline SVG icons (mail, GitHub, LinkedIn, arrow)

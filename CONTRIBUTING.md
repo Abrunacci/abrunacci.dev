@@ -21,7 +21,8 @@ common changes and the deploy.
 
 ## Before opening a pull request
 
-- Run the checks listed in the README, after `npm run build`.
+- Run the checks listed in the README: the type check on the sources, the
+  others after `npm run build`.
 - If `tools/` changed: `ruff check tools`, `ruff format --check tools` and
   `mypy --strict tools`.
 - If the page can look different: capture it at desktop (1440 px) and phone
@@ -39,6 +40,33 @@ common changes and the deploy.
   be approved explicitly.
 - The published page ships no JavaScript. Adding any is a decision for its own
   pull request, stating its size and why it is worth it.
+
+## Dependabot
+
+`.github/dependabot.yml` opens version updates once a month, for npm and for
+the GitHub Actions in the workflows, skipping releases younger than 7 days:
+
+- npm minor and patch updates come together in one pull request; each major
+  comes alone.
+- All action updates come together. Actions are pinned to commit SHAs with
+  the version in a comment, and Dependabot updates both.
+- Majors of `typescript` are ignored until `@astrojs/check` supports them.
+
+Security updates are enabled in the repository settings and arrive at any
+time.
+
+Their pull requests are reviewed like any other: the required check has to
+pass, and merging deploys after approval. Before merging, also:
+
+- Read the release notes of what changed, majors especially.
+- For `astro` or `@fontsource-variable/inter`: build `main` and the branch,
+  compare `dist/` (`diff -r`), and if it differs, compare screenshots at 320,
+  390 and 1440 px in light and dark mode. A new Inter file gets a new hashed
+  name, so the year-long cache under `/assets/` stays safe.
+- For a major of `@astrojs/check` or `html-validate`: expect new findings, and
+  fix them in the same pull request or a separate one before merging.
+- For actions: check that the version comment matches the pinned SHA's
+  release.
 
 ## Caching
 
