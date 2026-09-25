@@ -1,3 +1,4 @@
+---
 name: Deploy
 
 # Publishes public/ to https://abrunacci.dev on every push to main, or by
@@ -51,7 +52,8 @@ jobs:
           # accepts .well-known/ and rejects any other hidden file, loudly,
           # instead of the artifact dropping them silently.
           include-hidden-files: true
-          # Long enough for an approval that comes days later.
+          # An approval that comes after 7 days finds no artifact: then use
+          # "Re-run all jobs", which checks and uploads it again.
           retention-days: 7
           # A re-run (redeploying an earlier commit) replaces its own artifact.
           overwrite: true
@@ -116,35 +118,54 @@ jobs:
         run: rm -rf "$RUNNER_TEMP/deploy-ssh"
 
       # The site must serve exactly this commit's public/: the root and every
-      # file, byte for byte. A missing file would not show up as an error:
-      # the server answers any path that is not a file with index.html, so the
-      # comparison catches it. current switches atomically, so a few retries
-      # only cover the network.
+      # file, byte for byte. A file missing on the server fails too: outside
+      # /assets/ the server answers with index.html, which does not match,
+      # and under /assets/ with a 404. current switches atomically, so the
+      # retries (the whole check, up to 5 times) only cover the network.
       - name: Check the published site
         shell: bash
         run: |
           set -euo pipefail
-          for _ in 1 2 3 4 5; do
+          [[ -f site/index.html ]]
+          # URL path of every file, percent-encoded from its bytes (names need
+          # not be UTF-8), paired with the file itself.
+          mapfile -d '' files < <(find site -type f -print0 | sort -z)
+          mapfile -t urls < <(python3 -c '
+          import os, sys, urllib.parse
+          for f in sys.argv[1:]:
+              print(urllib.parse.quote(os.fsencode(f)[len(b"site/"):]))
+          ' "${files[@]}")
+          problem=""
+          for attempt in 1 2 3 4 5; do
+            (( attempt == 1 )) || sleep 3
             rm -f served.html
-            if curl -fsS --max-time 10 -o served.html "$SITE_URL" && cmp -s served.html site/index.html; then
-              while IFS= read -r -d '' file; do
-                path="${file#site/}"
-                url="${SITE_URL}$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))' "$path")"
-                if ! curl -fsS --max-time 10 "$url" | cmp -s - "$file"; then
-                  echo "::error::$url is not served as committed."
-                  exit 1
-                fi
-              done < <(find site -type f -print0 | sort -z)
-              echo "$SITE_URL serves this commit's public/."
+            if ! curl -fsS --max-time 10 -o served.html "$SITE_URL"; then
+              problem="$SITE_URL did not answer (see the curl errors above)."
+              continue
+            fi
+            if ! cmp -s served.html site/index.html; then
+              if grep -q 'en construcción' served.html; then
+                problem="$SITE_URL still serves the placeholder."
+              else
+                problem="$SITE_URL serves something other than this commit's index.html."
+              fi
+              continue
+            fi
+            problem=""
+            for i in "${!files[@]}"; do
+              url="${SITE_URL}${urls[i]}"
+              if ! curl -fsS --max-time 10 -o served.file "$url"; then
+                problem="$url did not answer, or answered with an error."
+                break
+              elif ! cmp -s served.file "${files[i]}"; then
+                problem="$url is not served as committed."
+                break
+              fi
+            done
+            if [[ -z "$problem" ]]; then
+              echo "$SITE_URL serves this commit's public/ (${#files[@]} files)."
               exit 0
             fi
-            sleep 3
           done
-          if [[ ! -s served.html ]]; then
-            echo "::error::$SITE_URL did not answer (see the curl errors above)."
-          elif grep -q 'en construcción' served.html; then
-            echo "::error::$SITE_URL still serves the placeholder."
-          else
-            echo "::error::$SITE_URL serves something other than this commit's index.html."
-          fi
+          echo "::error::$problem"
           exit 1

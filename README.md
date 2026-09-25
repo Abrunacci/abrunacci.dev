@@ -29,8 +29,11 @@ Only `public/` is deployed. It must not contain hidden files, except
 - **Add a project:** copy one `<li class="project">` block in
   `public/index.html` and edit it.
 - **Add the photo:** save a square image (at least 320×320 px) as
-  `public/assets/photo.jpg` and replace the placeholder `<div class="avatar …">`
-  with the `<img>` shown in the comment right above it.
+  `public/img/photo.jpg` and replace the placeholder `<div class="avatar …">`
+  with the `<img>` shown in the comment right above it. Keep files that may
+  change under the same name out of `public/assets/`: the server caches
+  everything there for a year, as files whose names change with their
+  content.
 - **Change the share image or the touch icon:** edit the templates in
   `tools/` and run `CHROME=/path/to/chrome tools/render-images.sh`.
 
@@ -56,14 +59,31 @@ every push to `main`, or by hand from the Actions tab (**Run workflow**, on
 3. It then checks that the site serves the root and every file of `public/`
    byte for byte, and fails the run if not.
 
-What was published stays published if any step fails. The environment holds
-two secrets, `DEPLOY_SSH_KEY` and `DEPLOY_KNOWN_HOSTS`. How to create them and
-set up the environment, and the server's rules for what a release may
-contain, are documented in the [infra](https://github.com/Abrunacci/infra)
-repo, "Deploying a project" in `ansible/README.md`.
+If the checks or the upload fail, what was published before stays
+published. If only the last check fails, the new release is already live:
+fix it and push again, or roll it back on the server (`site-rollback`, run by
+the admin; CI cannot).
+
+Runs go one at a time: a run waiting for approval holds back the ones pushed
+after it, and a newer waiting run replaces an older one, so the latest push
+wins.
+
+**Before the first deploy**, the server side must be ready: this project
+(`abrunacci-dev`) in the infra repo's `projects.yml` with its `deploy_key`,
+applied, and the `production` environment set up with required reviewers,
+`main` as its only branch, and two secrets, `DEPLOY_SSH_KEY` and
+`DEPLOY_KNOWN_HOSTS`. Otherwise GitHub creates the environment on the first
+run, without protection, and the deploy fails. How to create the key and the
+secrets and how to set up the environment, and the server's rules for what a
+release may contain, are documented in the
+[infra](https://github.com/Abrunacci/infra) repo, "Deploying a project" in
+`ansible/README.md`.
 
 To redeploy an earlier commit, open its Deploy run and choose **Re-run all
-jobs**: the checks run again on that commit and it is sent as a new release.
+jobs**: the checks run again on that commit, with that commit's workflow, and
+it is sent as a new release. GitHub allows it for 30 days; after that, push a
+revert instead. The same applies when an approval comes more than 7 days
+late: the run's artifact is gone, so re-run all jobs.
 
 ## Checks
 
