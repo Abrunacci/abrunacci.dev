@@ -42,9 +42,13 @@ jobs:
           python-version: "3.13"
       - name: Install dependencies
         run: npm ci
+      # Same checks as ci.yml: nothing that fails there can be deployed.
+      # Type-checks src/ (the build does not): content schema, component
+      # props, frontmatter.
+      - name: Type-check
+        run: npm run check
       - name: Build
         run: npm run build
-      # Same checks as ci.yml: nothing that fails there can be deployed.
       - name: Validate HTML
         run: npx --no html-validate dist tools
       - name: Test the site checker
