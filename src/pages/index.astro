@@ -24,7 +24,7 @@ if (repeated) {
 const availability = "Available for contract and consulting work";
 const stack = ["Python", "FastAPI", "PostgreSQL", "AWS", "Docker", "Terraform", "Ansible"];
 const email = "hello@abrunacci.dev";
-// Split once: the contact button breaks the address only after the @.
+// The contact button prefers to break the address right after the @.
 const [emailUser, emailDomain, ...rest] = email.split("@");
 if (!emailUser || !emailDomain || rest.length > 0) {
   throw new Error(`Not an email address: ${email}`);

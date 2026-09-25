@@ -507,8 +507,8 @@ h2 {
 @media (max-width: 30rem) {
   /* Keeps the email address on one line down to 320 px. The large button
      drops to the base button's font size on purpose, and its
-     overflow-wrap: anywhere stays as a fallback: the <wbr> after the @ is
-     where the address breaks first if it ever has to. */
+     overflow-wrap: anywhere (set on .btn--lg above) stays as a fallback: the
+     <wbr> after the @ is where the address breaks first if it ever has to. */
   .contact {
     padding-inline: 1rem;
   }
