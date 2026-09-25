@@ -38,6 +38,10 @@ jobs:
           python-version: "3.13"
       - name: Install dependencies
         run: npm ci
+      # Type-checks src/ (the build does not): content schema, component
+      # props, frontmatter.
+      - name: Type-check
+        run: npm run check
       - name: Build
         run: npm run build
       - name: Validate HTML

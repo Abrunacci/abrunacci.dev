@@ -120,9 +120,11 @@ npm run preview   # serve dist/ as it will be published
 
 ## Checks
 
-The same checks CI runs on every pull request, after `npm run build`:
+The same checks CI runs on every pull request. The type check runs on the
+sources; the others, after `npm run build`:
 
 ```sh
+npm run check     # astro check: types in src/, including the content schema
 npx --no html-validate dist tools
 python3 -m unittest discover -s tools
 python3 tools/check_site.py dist

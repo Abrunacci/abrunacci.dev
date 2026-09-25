@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "check": "astro check"
   },
   "engines": {
     "node": "^22.22.0 || >=24.8.0"
@@ -15,6 +16,8 @@
     "astro": "7.3.5"
   },
   "devDependencies": {
-    "html-validate": "11.16.0"
+    "@astrojs/check": "0.9.10",
+    "html-validate": "11.16.0",
+    "typescript": "6.0.3"
   }
 }
