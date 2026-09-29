@@ -1,0 +1,37 @@
+name: Authorship
+
+# Every commit of a pull request must be the owner's own, without added
+# attribution, and so must its description. The rules are in
+# tools/check_authorship.py. "edited" re-runs the check when the description
+# changes.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: authorship-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  authorship:
+    name: Authorship
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # The pull request's own commits, not the merge GitHub prepares, and
+      # the whole history, so that base..head can be listed.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      # The description is read from the event payload, never interpolated
+      # into the script.
+      - name: Check commits and description
+        run: python tools/check_authorship.py --event "$GITHUB_EVENT_PATH"

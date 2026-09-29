@@ -28,6 +28,8 @@ dist/                 the built site (not committed)
 tools/
   check_site.py       internal links and publishable-files check (used by CI)
   test_check_site.py  tests for check_site.py
+  check_authorship.py authorship check on pull requests (used by CI)
+  test_check_authorship.py  tests for check_authorship.py
   render-images.sh    renders og-image.png and apple-touch-icon.png
   *.html              templates for those images
 ```
@@ -129,4 +131,13 @@ npm run check     # astro check: types in src/, including the content schema
 npx --no html-validate dist tools
 python3 -m unittest discover -s tools
 python3 tools/check_site.py dist
+```
+
+Every pull request also runs **Authorship**
+(`.github/workflows/authorship.yml`), described in CONTRIBUTING.md. To run it
+before pushing, on the commits of the current branch and a draft of the
+description:
+
+```sh
+python3 tools/check_authorship.py --body-file description.md origin/main
 ```
