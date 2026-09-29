@@ -29,14 +29,21 @@ class CheckAuthorshipTest(unittest.TestCase):
 
     def git(self, *args: str, env: dict[str, str] | None = None) -> str:
         # No hooks: a global commit-msg hook could rewrite the messages under
-        # test.
+        # test. The identity is the owner's unless env says otherwise, so no
+        # git config is needed (CI runners have none).
+        identity = {
+            "GIT_AUTHOR_NAME": OWNER_NAME,
+            "GIT_AUTHOR_EMAIL": OWNER_EMAIL,
+            "GIT_COMMITTER_NAME": OWNER_NAME,
+            "GIT_COMMITTER_EMAIL": OWNER_EMAIL,
+        }
         return subprocess.run(
             ["git", "-c", "core.hooksPath=/dev/null", "-c", "commit.gpgsign=false"]
             + list(args),
             check=True,
             capture_output=True,
             text=True,
-            env={**os.environ, **(env or {})},
+            env={**os.environ, **identity, **(env or {})},
         ).stdout.strip()
 
     def commit(
