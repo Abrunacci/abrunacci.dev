@@ -28,6 +28,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # Fails when a commit of the pull request is not mine or carries a
+      # co-author or an attribution line. The policy lives in the infra repo;
+      # it fetches the commits itself and passes on pushes to main.
+      - name: Check commit metadata
+        uses: Abrunacci/infra/.github/actions/check-commit-metadata@1306bea3c9d3c518394cc9ea249d7b3753a7a381 # main
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
