@@ -5,6 +5,7 @@
 - Every internal reference in an HTML file (href, src, srcset, and the share
   metadata og:image, og:url and twitter:image) points to a file that exists
   under the site root. References to https://abrunacci.dev count as internal.
+  Paths the backend serves (BACKEND_PATHS) are not files and are skipped.
 - Every url(...) in a CSS file or in a <style> element points to a file that
   exists.
 - Every fragment link (#id) points to an element with that id in the target
@@ -33,6 +34,9 @@ SITE_HOST = "abrunacci.dev"
 URL_ATTRS = {"href", "src"}
 URL_META_KEYS = {"og:image", "og:url", "twitter:image"}
 CSS_URL = re.compile(r"""url\(\s*(['"]?)([^'")]+)\1\s*\)""")
+# Served by backend/, not by the static site: the same as the backend's paths
+# in infra's projects.yml (["/api/*", "/contact"]).
+BACKEND_PATHS = re.compile(r"^/(api/.*|contact)$")
 PUBLIC_DIR = Path(__file__).resolve().parent.parent / "public"
 # What Astro writes to assets/: photo.4f8cjK8z_Ny5af.avif, index.B7Ca1Qx2.css,
 # and fonts/cb13050e68e771d7.woff2 (a hash of the file's content).
@@ -89,6 +93,10 @@ def is_internal(ref: str) -> bool:
     return parts.scheme in {"", "http", "https"} and parts.hostname == SITE_HOST
 
 
+def is_backend(ref: str) -> bool:
+    return BACKEND_PATHS.match(urlsplit(ref).path) is not None
+
+
 def resolve(ref: str, source: Path, root: Path) -> tuple[Path, str]:
     """Returns the file an internal ref points to and its fragment."""
     parts = urlsplit(ref)
@@ -142,7 +150,7 @@ def check_refs(
     errors = []
     rel_source = source.relative_to(root)
     for ref in refs:
-        if not is_internal(ref):
+        if not is_internal(ref) or is_backend(ref):
             continue
         target, fragment = resolve(ref, source, root)
         if not target.is_relative_to(root):

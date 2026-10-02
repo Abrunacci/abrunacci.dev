@@ -117,7 +117,7 @@ a:focus-visible {
   padding: 0 1.25rem;
 }
 
-/* Buttons and links: one primary action (email), secondary ones with a
+/* Buttons and links: one primary action (the contact form), secondary ones with a
    border, and a tonal one for a project's live site. */
 .btn {
   display: inline-flex;
@@ -138,7 +138,6 @@ a:focus-visible {
   min-height: 3.25rem;
   padding: 0.75rem 1.5rem;
   font-size: 1.0625rem;
-  overflow-wrap: anywhere;
 }
 
 .btn--primary {
@@ -329,16 +328,6 @@ h1 {
 
 .hero .actions {
   margin-top: 1rem;
-}
-
-/* The address as plain text under the buttons, for visitors without a mail
-   program set up: one click or tap selects all of it, ready to copy. It goes
-   away when the contact form replaces the mailto: links. */
-.email-address {
-  margin-top: -0.25rem;
-  color: var(--muted);
-  font-size: 0.9375rem;
-  user-select: all;
 }
 
 .stack {
@@ -558,17 +547,8 @@ h2 {
 }
 
 @media (max-width: 30rem) {
-  /* Keeps the email address on one line down to 320 px. The large button
-     drops to the base button's font size on purpose, and its
-     overflow-wrap: anywhere (set on .btn--lg above) stays as a fallback: the
-     <wbr> after the @ is where the address breaks first if it ever has to. */
   .contact {
     padding-inline: 1rem;
-  }
-
-  .btn--lg {
-    padding-inline: 1rem;
-    font-size: 1rem;
   }
 
   .actions {

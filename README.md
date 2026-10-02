@@ -62,13 +62,16 @@ hash in every name (`photo.4f8cjK8z_Ny5af.avif`,
   `npm ci`: the templates load Inter from `node_modules/`). The favicon is
   `public/favicon.svg`, edited by hand.
 
-## Contact address
+## Contact form
 
-The page publishes `hello@abrunacci.dev`. That mailbox does not exist on its
-own: Cloudflare Email Routing forwards it to a personal inbox, and that rule is
-managed in the [infra](https://github.com/Abrunacci/infra) repo together with
-the root domain. The routing has to be live before this page is published, or
-mail sent from it bounces.
+The contact buttons link to `/contact`, the form served by `backend/` (see
+`backend/README.md`); Caddy sends `/contact` and `/api/*` there, and
+everything else is this static site. The page shows no email address.
+
+The form mails each message to `hello@abrunacci.dev`. That mailbox does not
+exist on its own: Cloudflare Email Routing forwards it to a personal inbox, and
+that rule is managed in the [infra](https://github.com/Abrunacci/infra) repo
+together with the root domain.
 
 ## Deploy
 

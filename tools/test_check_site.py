@@ -59,6 +59,17 @@ class CheckSiteTest(unittest.TestCase):
         self.write(".well-known/security.txt", "Contact: mailto:a@b.c")
         self.assertEqual(self.errors(), [])
 
+    def test_backend_paths_are_not_files(self) -> None:
+        self.page(
+            '<a href="/contact">form</a> <a href="https://abrunacci.dev/contact">form</a>'
+            ' <a href="/api/health">health</a>'
+        )
+        self.assertEqual(self.errors(), [])
+
+    def test_other_paths_near_the_backend_are_still_checked(self) -> None:
+        self.page('<a href="/contacts">x</a>')
+        self.assert_one_error("'/contacts' is broken")
+
     def test_missing_root(self) -> None:
         self.tmp.cleanup()
         self.assert_one_error("is not a directory")
