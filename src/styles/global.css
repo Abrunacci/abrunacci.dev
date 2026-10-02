@@ -377,6 +377,35 @@ h2 {
   margin: 0 auto;
 }
 
+.about-lead {
+  margin-bottom: 1.25rem;
+  font-size: 1.1875rem;
+  font-weight: 500;
+}
+
+.about-points {
+  display: grid;
+  gap: 0.75rem;
+}
+
+/* A short accent dash instead of a bullet, aligned with the first line. */
+.about-points li {
+  position: relative;
+  padding-left: 1.5rem;
+  color: var(--muted);
+}
+
+.about-points li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.8em;
+  width: 0.75rem;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
 /* Projects: one card per entry of src/data/projects.yaml. */
 .projects {
   display: grid;
