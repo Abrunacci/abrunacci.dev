@@ -1,7 +1,7 @@
 # Projects shown on the landing page, sorted by `order` (lower first).
 # Fields: id, title, lang (of the title, if not English), summary, stack
-# (optional), links.live and/or links.source, order. The build fails on
-# unknown fields.
+# (optional), links.live and/or links.source (optional: leave links out when
+# there is nothing public to visit), order. The build fails on unknown fields.
 
 - id: cuanto-cuesta
   title: ¿Cuánto cuesta?
@@ -9,12 +9,33 @@
   summary: >-
     Compares the routes for turning US dollars in Payoneer into Argentine
     pesos, with the fees of every step, to show which one leaves you the most.
-  # What the live site (stage 1, in the browser only) is built with.
-  stack: [TypeScript, React, Vite]
+    A FastAPI backend preloads the day's prices.
+  # Backend first: what the project shows about backend work.
+  stack: [FastAPI, PostgreSQL, TypeScript, React, Vite]
   links:
     live: https://cuanto-cuesta.abrunacci.dev
     source: https://github.com/Abrunacci/cuanto-cuesta
   order: 10
+
+- id: epb-stock
+  title: EPB Stock
+  summary: >-
+    Stock control for retail shops: a product with a FastAPI backend and
+    PostgreSQL.
+  stack: [Python, FastAPI, PostgreSQL]
+  # No links: the repository is private and the site is only a login.
+  order: 20
+
+- id: data-pipeline
+  title: data-pipeline
+  summary: >-
+    Collects and validates market data on a schedule. Today it gathers the
+    exchange rates ¿Cuánto cuesta? needs, checking each source against a
+    second one.
+  stack: [Python, Pydantic, httpx, Docker]
+  links:
+    source: https://github.com/Abrunacci/data-pipeline
+  order: 30
 
 - id: infra
   title: infra
@@ -24,4 +45,4 @@
   stack: [Terraform, Ansible, Docker Compose, Caddy, PostgreSQL]
   links:
     source: https://github.com/Abrunacci/infra
-  order: 20
+  order: 40
