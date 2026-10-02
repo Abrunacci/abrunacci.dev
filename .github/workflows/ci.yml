@@ -55,3 +55,38 @@ jobs:
         run: python -m unittest discover -s tools
       - name: Check internal links and publishable files
         run: python tools/check_site.py dist
+
+  # The contact form's service (backend/). Not a required check: a pull request that only
+  # touches the page does not need it, and it runs anyway.
+  backend:
+    name: Backend tests and lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --locked
+      - run: uv run pytest
+      - run: uv run mypy
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+  # The production image builds (deploy.yml publishes it from main). Nothing is pushed here.
+  backend-image:
+    name: Backend image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build
+        run: docker build --tag abrunacci-dev-backend:ci backend

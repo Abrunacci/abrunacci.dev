@@ -30,6 +30,9 @@ common changes and the deploy.
   others after `npm run build`.
 - If `tools/` changed: `ruff check tools`, `ruff format --check tools` and
   `mypy --strict tools`.
+- If `backend/` changed: the checks in `backend/README.md` (pytest, mypy and
+  ruff, with uv). CI runs them in the job **Backend tests and lint**, and
+  builds the image in **Backend image**.
 - If the page can look different: capture it at desktop (1440 px) and phone
   (390 px) widths, in light and dark mode, and compare with `main`. A change
   that should not alter the page must produce the same pixels.

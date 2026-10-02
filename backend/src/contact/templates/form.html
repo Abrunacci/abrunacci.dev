@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Contact{% endblock %}
+{% block meta %}
+  <meta name="description" content="Write to Alejandro Brunacci, Senior Backend Engineer (Python & FastAPI).">
+{% endblock %}
+{% block style %}
+    .form {
+      display: grid;
+      gap: 1.25rem;
+      margin-top: 2rem;
+    }
+
+    .field {
+      display: grid;
+      gap: 0.375rem;
+    }
+
+    label {
+      font-size: 0.9375rem;
+      font-weight: 600;
+    }
+
+    input, textarea {
+      width: 100%;
+      min-height: 3rem;
+      padding: 0.625rem 0.875rem;
+      border: 1px solid var(--field-border);
+      border-radius: 0.75rem;
+      background: var(--surface);
+      color: var(--text);
+      /* 1rem or more: below that, iPhone Safari zooms in on focus. */
+      font: inherit;
+      font-size: 1.0625rem;
+      line-height: 1.5;
+    }
+
+    textarea {
+      min-height: 11rem;
+      resize: vertical;
+    }
+
+    input:focus-visible, textarea:focus-visible {
+      outline: 3px solid var(--focus);
+      outline-offset: 1px;
+      border-color: var(--focus);
+    }
+
+    [aria-invalid="true"] { border-color: var(--error); }
+
+    .field-error {
+      color: var(--error);
+      font-size: 0.9375rem;
+      font-weight: 600;
+    }
+
+    .alert {
+      margin-top: 1.5rem;
+      padding: 0.875rem 1rem;
+      border: 1px solid var(--error);
+      border-radius: 0.75rem;
+      background: var(--error-soft);
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .form .btn { width: 100%; }
+
+    @media (min-width: 30rem) {
+      .form .btn { width: auto; justify-self: start; }
+    }
+
+    /* The honeypot: off screen and out of the tab order. */
+    .trap {
+      position: absolute;
+      left: -10000px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+    }
+{% endblock %}
+{% block main %}
+      <p class="eyebrow">Get in touch</p>
+      <h1>Need a senior Python backend engineer?</h1>
+      <p class="lead">Tell me about your product, your team and what you need built.</p>
+      {% if error %}
+      <p class="alert" role="alert">{{ error }}</p>
+      {% elif errors %}
+      <p class="alert" role="alert">Please check the fields marked below.</p>
+      {% endif %}
+      <form class="form" method="post" action="{{ post_path }}">
+        <input type="hidden" name="{{ token_field }}" value="{{ token }}">
+        {% for field, label, type, autocomplete in [
+          ("name", "Name", "text", "name"),
+          ("email", "Email", "email", "email"),
+          ("message", "Message", None, None),
+        ] %}
+        <div class="field">
+          <label for="{{ field }}">{{ label }}</label>
+          {% if type %}
+          <input id="{{ field }}" name="{{ field }}" type="{{ type }}" autocomplete="{{ autocomplete }}" required maxlength="{{ limits[field] }}"
+            {%- if values %} value="{{ values[field] }}"{% endif %}
+            {%- if errors[field] %} aria-invalid="true" aria-describedby="{{ field }}-error"{% endif %}>
+          {% else %}
+          <textarea id="{{ field }}" name="{{ field }}" required maxlength="{{ limits[field] }}" rows="7"
+            {%- if errors[field] %} aria-invalid="true" aria-describedby="{{ field }}-error"{% endif %}>
+            {%- if values %}{{ values[field] }}{% endif -%}
+          </textarea>
+          {% endif %}
+          {% if errors[field] %}
+          <p class="field-error" id="{{ field }}-error">{{ errors[field] }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+        <div class="trap" aria-hidden="true">
+          <label for="{{ honeypot_field }}">Leave this field empty</label>
+          <input id="{{ honeypot_field }}" name="{{ honeypot_field }}" type="text" tabindex="-1" autocomplete="off">
+        </div>
+        <button class="btn btn--primary" type="submit">Send message</button>
+      </form>
+{% endblock %}
