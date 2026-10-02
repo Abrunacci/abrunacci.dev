@@ -15,6 +15,11 @@ common changes and the deploy.
   the job in `.github/workflows/ci.yml`. Do not rename that job without
   updating the ruleset first, or pull requests wait for a check that never
   comes.
+- Every commit is authored by Alejandro Brunacci, with no `Co-Authored-By`
+  trailer or attribution line. The required job checks it in its step
+  **Check commit metadata**, a composite action from the
+  [infra](https://github.com/Abrunacci/infra) repo pinned to a commit SHA;
+  its README there lists the rules.
 - Commit messages, pull request titles and descriptions and review comments
   are in English. Commit subjects are imperative and describe the change
   ("Add the photo to the header"), without a type prefix.
