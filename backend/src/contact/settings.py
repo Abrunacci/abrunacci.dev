@@ -34,9 +34,8 @@ class Settings:
     subject_prefix: str = DEFAULT_SUBJECT_PREFIX
     site_url: str = DEFAULT_SITE_URL
     trusted_proxy: str = ""
-    """Host name of the reverse proxy (Caddy) on the container network. Only a request whose
-    connection comes from it may say who the visitor is, in ``X-Forwarded-For``. Empty: the
-    header is never read."""
+    """Container name of the reverse proxy (Caddy). Only a request whose connection comes from
+    it may say who the visitor is, in ``X-Forwarded-For``. Empty: the header is never read."""
 
     @classmethod
     def from_env(cls, env: Mapping[str, str]) -> Settings:

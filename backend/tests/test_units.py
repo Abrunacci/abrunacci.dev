@@ -96,6 +96,24 @@ class TestVisitorAddress:
     def test_a_proxy_that_does_not_resolve_is_not_trusted(self) -> None:
         assert self.run("127.0.0.1", "203.0.113.7", "no-such-host.invalid") == "127.0.0.1"
 
+    def test_a_new_proxy_address_is_picked_up_quickly(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        clock = [1000.0]
+        monkeypatch.setattr("contact.client_ip.time.monotonic", lambda: clock[0])
+        proxy = client_ip.TrustedProxy("localhost")
+
+        async def check(peer: str) -> bool:
+            return await proxy.is_proxy(peer)
+
+        assert asyncio.run(check("127.0.0.1"))
+        # Caddy was recreated: until the retry delay, the old answer stands.
+        proxy._addresses = frozenset({"10.0.0.9"})
+        clock[0] += 1
+        assert not asyncio.run(check("127.0.0.1"))
+        clock[0] += client_ip.RETRY_AFTER_SECONDS
+        assert asyncio.run(check("127.0.0.1"))
+
     def test_ipv4_mapped_peer(self) -> None:
         assert self.run("::ffff:127.0.0.1", "203.0.113.7", "localhost") == "203.0.113.7"
 

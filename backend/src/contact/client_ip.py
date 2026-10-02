@@ -5,6 +5,10 @@ header is believed only when the connection really comes from Caddy: any other p
 container on the same network) could write whatever it likes in it. Caddy itself has no
 ``trusted_proxies``, so it replaces whatever header the visitor sent with the address it saw.
 
+Caddy is recognized by its container name, resolved by Docker's DNS. That answer is Caddy's
+address on whichever network it shares with this container, so the check does not depend on the
+network's name (``edge`` today, a network of this project's own later).
+
 IPv4 addresses count one by one. IPv6 addresses count by their /64 block: one subscriber, or one
 attacker, usually holds a whole /64 and can switch addresses inside it at will.
 """
@@ -23,6 +27,10 @@ UNKNOWN = "unknown"
 RESOLVE_EVERY_SECONDS = 60.0
 """The proxy's address changes only when its container is recreated."""
 
+RETRY_AFTER_SECONDS = 5.0
+"""A peer that is not the known address triggers a new lookup, at most this often: right after
+Caddy is recreated, its new address is recognized within seconds, not a minute."""
+
 
 def limit_key(address: str) -> str:
     try:
@@ -38,33 +46,38 @@ def limit_key(address: str) -> str:
 
 @dataclass
 class TrustedProxy:
-    """The proxy's addresses, looked up by host name and kept for a minute."""
+    """The proxy's addresses, looked up by host name."""
 
     host: str
     _addresses: frozenset[str] = field(default=frozenset(), init=False)
     _resolved_at: float = field(default=float("-inf"), init=False)
 
-    async def addresses(self) -> frozenset[str]:
+    async def is_proxy(self, address: str) -> bool:
         if not self.host:
-            return frozenset()
-        now = time.monotonic()
-        if now - self._resolved_at >= RESOLVE_EVERY_SECONDS:
-            try:
-                infos = await asyncio.get_running_loop().getaddrinfo(
-                    self.host, None, type=socket.SOCK_STREAM
-                )
-            except OSError:
-                # Not found: trust nobody until the next lookup.
-                infos = []
-            self._addresses = frozenset(_normalize(str(info[4][0])) for info in infos)
-            self._resolved_at = now
-        return self._addresses
+            return False
+        age = time.monotonic() - self._resolved_at
+        if age >= RESOLVE_EVERY_SECONDS or (
+            address not in self._addresses and age >= RETRY_AFTER_SECONDS
+        ):
+            await self._resolve()
+        return address in self._addresses
+
+    async def _resolve(self) -> None:
+        try:
+            infos = await asyncio.get_running_loop().getaddrinfo(
+                self.host, None, type=socket.SOCK_STREAM
+            )
+        except OSError:
+            # Not found: trust nobody until the next lookup.
+            infos = []
+        self._addresses = frozenset(_normalize(str(info[4][0])) for info in infos)
+        self._resolved_at = time.monotonic()
 
 
 async def visitor_address(peer: str | None, forwarded_for: str | None, proxy: TrustedProxy) -> str:
     """The visitor's address: from the header if the proxy sent it, else the connection's."""
     peer_address = _normalize(peer or "")
-    if forwarded_for and peer_address in await proxy.addresses():
+    if forwarded_for and await proxy.is_proxy(peer_address):
         # The last entry is the one the proxy added; anything before it came from the visitor.
         return forwarded_for.rsplit(",", 1)[-1].strip()
     return peer_address

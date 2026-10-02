@@ -45,9 +45,14 @@ with its `reason`, or `send_failed`); all but `sent` carry the whole message, so
 ### The visitor's address
 
 Caddy passes it in `X-Forwarded-For`. The header is read only when the connection comes from
-the host named in `TRUSTED_PROXY` (Caddy's name on the container network), looked up again every
-minute; from any other peer it is ignored and the connection's own address counts. Caddy must
-not have `trusted_proxies`, so it replaces whatever header the visitor sent.
+the container named in `TRUSTED_PROXY` (Caddy's container name); from any other peer it is
+ignored and the connection's own address counts. Caddy must not have `trusted_proxies`, so it
+replaces whatever header the visitor sent.
+
+The name is resolved by Docker's DNS, which answers with Caddy's address on the network it
+shares with this container, whatever that network is called. It is looked up again every
+minute, and sooner (at most every 5 seconds) when a connection comes from an address it does
+not know, so a recreated Caddy is recognized within seconds.
 
 ### State in memory
 
@@ -62,11 +67,11 @@ before a deploy still works after it.
 | --- | --- | --- |
 | `RESEND_API_KEY` | yes | A Resend key with sending access only. Secret. |
 | `FORM_SECRET` | yes | At least 32 characters; signs the time token. Secret, generated on the server. |
-| `MAIL_FROM` | yes | The sender, on the domain verified in Resend, e.g. `abrunacci.dev <contact@mail.abrunacci.dev>`. |
+| `MAIL_FROM` | yes | The sender, on the domain verified in Resend, e.g. `Formulario abrunacci.dev <no-reply@mail.abrunacci.dev>`. |
 | `MAIL_TO` | yes | Where messages go. |
 | `MAIL_SUBJECT_PREFIX` | no | Default `[abrunacci.dev]`. |
 | `SITE_URL` | no | Default `https://abrunacci.dev`; the pages link back to it. |
-| `TRUSTED_PROXY` | no | Caddy's host name on the container network. Empty: `X-Forwarded-For` is never read. |
+| `TRUSTED_PROXY` | no | Caddy's container name, as Docker's DNS knows it. Empty: `X-Forwarded-For` is never read. |
 
 The app refuses to start when a required one is missing, naming the variable and never its value.
 
