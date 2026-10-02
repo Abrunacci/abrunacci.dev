@@ -70,6 +70,12 @@ pass, and merging deploys after approval. Before merging, also:
   name, so the year-long cache under `/assets/` stays safe.
 - For a major of `@astrojs/check` or `html-validate`: expect new findings, and
   fix them in the same pull request or a separate one before merging.
+- When an update needs another package updated too (a major of `astro` that
+  needs a newer `@astrojs/check` or `typescript`), they arrive in separate
+  pull requests and the first one can fail the required check. Update the
+  other package by hand on the same Dependabot branch
+  (`npm i -E <pkg>@<version>`), commit, and let the check run again. Do not
+  merge them separately.
 - For actions: check that the version comment matches the pinned SHA's
   release.
 
