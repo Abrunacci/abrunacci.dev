@@ -14,12 +14,15 @@ const projects = defineCollection({
       summary: z.string(),
       // Technologies the project really uses, shown as tags.
       stack: z.array(z.string().min(1)).min(1).optional(),
+      // Optional: a project with nothing public to visit shows only its text
+      // and tags. When present, it needs at least one link.
       links: z
         .object({
           live: z.url({ protocol: /^https$/ }).optional(),
           source: z.url({ protocol: /^https$/ }).optional(),
         })
-        .refine((links) => links.live || links.source, "needs a live or a source link"),
+        .refine((links) => links.live || links.source, "needs a live or a source link")
+        .optional(),
       // Lower comes first.
       order: z.number().int(),
     })

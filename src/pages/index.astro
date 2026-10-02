@@ -111,14 +111,16 @@ const linkedin = "https://www.linkedin.com/in/abrunacci/";
                     {project.stack.map((item) => <li>{item}</li>)}
                   </ul>
                 )}
-                <p class="project-links">
-                  {project.links.live && (
-                    <a class="btn btn--tonal" href={project.links.live}><span>Live site<span class="visually-hidden"> of {title}</span></span><Icon name="arrow-up-right" size={16} /></a>
-                  )}
-                  {project.links.source && (
-                    <a class="link" href={project.links.source}><Icon name="github" /><span>Source code<span class="visually-hidden"> on GitHub: {title}</span></span></a>
-                  )}
-                </p>
+                {project.links && (
+                  <p class="project-links">
+                    {project.links.live && (
+                      <a class="btn btn--tonal" href={project.links.live}><span>Live site<span class="visually-hidden"> of {title}</span></span><Icon name="arrow-up-right" size={16} /></a>
+                    )}
+                    {project.links.source && (
+                      <a class="link" href={project.links.source}><Icon name="github" /><span>Source code<span class="visually-hidden"> on GitHub: {title}</span></span></a>
+                    )}
+                  </p>
+                )}
               </li>
             );
           })}
