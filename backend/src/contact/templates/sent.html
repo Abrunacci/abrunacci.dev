@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Message received{% endblock %}
+{% block meta %}
+  <meta name="robots" content="noindex">
+{% endblock %}
+{% block style %}
+    .actions { margin-top: 2rem; }
+{% endblock %}
+{% block main %}
+      <p class="eyebrow">Get in touch</p>
+      <h1>Thanks, I got your message</h1>
+      <p class="lead">I'll get back to you by email.</p>
+      <p class="actions"><a class="btn btn--secondary" href="{{ site_url }}/">Back to abrunacci.dev</a></p>
+{% endblock %}

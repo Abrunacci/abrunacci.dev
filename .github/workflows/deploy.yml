@@ -2,9 +2,15 @@
 name: Deploy
 
 # Builds the site with Astro and publishes dist/ to https://abrunacci.dev on
-# every push to main, or by hand. The server side (deploy user, one key per
-# project, deploy.sh) lives in the infra repository: see "Deploying a project"
-# in its ansible/README.md.
+# every push to main, or by hand. Before the site, it publishes the contact
+# form's image (backend/) and deploys it by digest. The server side (deploy
+# user, one key per project, deploy.sh, deploy-backend) lives in the infra
+# repository: see "Deploying a project" and "Deploying a backend" in its
+# ansible/README.md.
+#
+# The backend is deployed only while the repository variable DEPLOY_BACKEND is
+# "true": until infra runs the backend, the image is published but not
+# deployed, and the site deploys as before.
 on:
   push:
     branches: [main]
@@ -18,6 +24,14 @@ permissions: {}
 concurrency:
   group: deploy-production
   cancel-in-progress: false
+
+env:
+  # Lowercase, as infra's projects.yml names it.
+  IMAGE: ghcr.io/abrunacci/abrunacci-dev-backend
+  # Tagged versions kept in GHCR. The server keeps the last 5 releases plus the
+  # one before the latest deploy, so fewer than 6 could leave it unable to roll
+  # back to one.
+  KEEP_VERSIONS: 6
 
 jobs:
   check:
@@ -70,9 +84,92 @@ jobs:
           # A re-run (redeploying an earlier commit) replaces its own artifact.
           overwrite: true
 
+  # Same checks as the backend job in ci.yml.
+  backend:
+    name: Check the backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --locked
+      - run: uv run pytest
+      - run: uv run mypy
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+  publish:
+    name: Publish the backend image
+    needs: backend
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      # What the deploy sends: the digest, not a tag (a tag moves).
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      # provenance and sbom off: with them the image is pushed as an index with
+      # untagged manifests, which the cleanup below would delete, breaking the
+      # image. This way it is one manifest, linux/amd64.
+      - name: Build and push
+        id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: backend
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      # Cleanup in two steps. First the untagged versions: they lost every tag
+      # when the same commit was published again. Then, of what is left, only
+      # the newest KEEP_VERSIONS.
+      - name: Delete untagged versions
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: abrunacci-dev-backend
+          package-type: container
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: "true"
+      - name: Keep only the latest versions
+        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
+        with:
+          package-name: abrunacci-dev-backend
+          package-type: container
+          min-versions-to-keep: ${{ env.KEEP_VERSIONS }}
+
   deploy:
     name: Deploy to production
-    needs: check
+    needs: [check, publish]
     # The production environment only accepts main; this makes the intent
     # explicit and skips the approval request for anything else.
     if: github.ref == 'refs/heads/main'
@@ -92,38 +189,68 @@ jobs:
           name: site
           path: site
 
-      - name: Deploy
+      - name: Write the deploy key
         shell: bash
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DIGEST: ${{ needs.publish.outputs.digest }}
         run: |
           set -euo pipefail
           if [[ -z "$DEPLOY_SSH_KEY" || -z "$DEPLOY_KNOWN_HOSTS" ]]; then
             echo "::error::DEPLOY_SSH_KEY or DEPLOY_KNOWN_HOSTS is missing in the production environment."
             exit 1
           fi
-          ssh_dir="$RUNNER_TEMP/deploy-ssh"
-          # The key exists only while this step runs, readable only by us.
-          trap 'rm -rf "$ssh_dir"' EXIT
+          case "$DIGEST" in
+            sha256:????????????????????????????????????????????????????????????????) ;;
+            *) echo "::error::The publish job gave no image digest ('$DIGEST')."; exit 1 ;;
+          esac
+          # Readable only by us; removed by the last step, whatever happens.
           umask 077
-          mkdir "$ssh_dir"
-          printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_dir/key"
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
-          # Out of the environment of tar and ssh.
-          unset DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS
-          # The server's identity is always checked against the pinned line.
+          mkdir "$RUNNER_TEMP/deploy-ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/deploy-ssh/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/deploy-ssh/known_hosts"
+
+      # First the backend, by digest: the server pulls that image, switches the
+      # container and puts the previous one back if /api/health does not
+      # answer. A failure stops the job before the site is touched. stdin
+      # closed: deploy-backend reads nothing.
+      - name: Deploy the backend
+        if: vars.DEPLOY_BACKEND == 'true'
+        shell: bash
+        env:
+          DIGEST: ${{ needs.publish.outputs.digest }}
+        run: |
+          set -euo pipefail
+          ssh -i "$RUNNER_TEMP/deploy-ssh/key" \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$RUNNER_TEMP/deploy-ssh/known_hosts" \
+            -o GlobalKnownHostsFile=/dev/null \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            deploy@server.abrunacci.dev deploy-backend "$GITHUB_SHA" "$DIGEST" "$GITHUB_RUN_ID" </dev/null
+
+      - name: Skip the backend
+        if: vars.DEPLOY_BACKEND != 'true'
+        run: echo "::notice::Backend not deployed; set the repository variable DEPLOY_BACKEND to true once infra runs it."
+
+      # The server's identity is always checked against the pinned line.
+      - name: Deploy the site
+        shell: bash
+        run: |
+          set -euo pipefail
           tar -C site -cz . \
-            | ssh -i "$ssh_dir/key" \
+            | ssh -i "$RUNNER_TEMP/deploy-ssh/key" \
                 -o IdentitiesOnly=yes \
                 -o StrictHostKeyChecking=yes \
-                -o UserKnownHostsFile="$ssh_dir/known_hosts" \
+                -o UserKnownHostsFile="$RUNNER_TEMP/deploy-ssh/known_hosts" \
                 -o GlobalKnownHostsFile=/dev/null \
                 -o BatchMode=yes \
                 -o ConnectTimeout=15 \
                 deploy@server.abrunacci.dev deploy "$GITHUB_SHA" "$GITHUB_RUN_ID"
 
-      # Also removes the key if the step above was killed before its trap ran.
+      # Also when a step above failed or was cancelled.
       - name: Remove the SSH key
         if: always()
         shell: bash
@@ -181,3 +308,14 @@ jobs:
           done
           echo "::error::$problem"
           exit 1
+
+      # The public side of the backend: Caddy reaches it and it serves the form.
+      - name: Check the published backend
+        if: vars.DEPLOY_BACKEND == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS --max-time 10 "${SITE_URL}api/health"
+          echo
+          curl -fsS --max-time 10 "${SITE_URL}contact" | grep -q 'action="/api/contact"'
+          echo "${SITE_URL}contact serves the form."

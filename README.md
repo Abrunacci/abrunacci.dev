@@ -25,6 +25,8 @@ public/               copied as is to the root of the site
   apple-touch-icon.png
   og-image.png        share preview (1200×630)
 dist/                 the built site (not committed)
+backend/              the contact form's service (FastAPI): serves /contact
+                      and /api/*, mails each message; see backend/README.md
 tools/
   check_site.py       internal links and publishable-files check (used by CI)
   test_check_site.py  tests for check_site.py
