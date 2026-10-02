@@ -237,8 +237,8 @@ a:focus-visible {
 /* No filter: blur() here: on iPhone Safari the blurred halo showed hard
    rectangular edges, likely because iOS WebKit can clip a blur to its
    compositing layer. A radial mask fades the colors out instead, reaching
-   full transparency at the box's edge, and the box is never wider than the
-   page's content, so it cannot add horizontal scroll. */
+   full transparency at the box's edge, and the box leaves the page's side
+   padding free, so it cannot add horizontal scroll. */
 .avatar-wrap::before {
   content: "";
   position: absolute;
