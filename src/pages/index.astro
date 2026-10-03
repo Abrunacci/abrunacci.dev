@@ -36,6 +36,20 @@ const aboutPoints = [
 const contactForm = "/contact";
 const github = "https://github.com/Abrunacci";
 const linkedin = "https://www.linkedin.com/in/abrunacci/";
+// The summary search engines show under the title; it leads with the name
+// so a search for it finds the page. Shares use og:description below.
+const description =
+  "Alejandro Brunacci, Senior Backend Engineer (Python & FastAPI). Backends for GenAI and data products. Available for remote contract and consulting work.";
+// Tells search engines who the page is about (schema.org Person), so a search
+// for the name can find it and link the profiles to it.
+const person = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Alejandro Brunacci",
+  jobTitle: "Senior Backend Engineer",
+  url: "https://abrunacci.dev/",
+  sameAs: [linkedin, github],
+};
 ---
 
 <!DOCTYPE html>
@@ -44,7 +58,7 @@ const linkedin = "https://www.linkedin.com/in/abrunacci/";
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Alejandro Brunacci · Senior Backend Engineer (Python &amp; FastAPI)</title>
-  <meta name="description" content="Available for contract and consulting work. 10+ years. Backends for GenAI and data products. Remote, with US time zone overlap.">
+  <meta name="description" content={description}>
   <meta name="author" content="Alejandro Brunacci">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
@@ -68,6 +82,7 @@ const linkedin = "https://www.linkedin.com/in/abrunacci/";
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <Font cssVariable="--font-inter" preload />
+  <script type="application/ld+json" set:html={JSON.stringify(person)} />
 </head>
 <body>
   <div class="page">
