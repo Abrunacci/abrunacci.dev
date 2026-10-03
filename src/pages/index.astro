@@ -32,12 +32,8 @@ const aboutPoints = [
   "Led multidisciplinary teams of up to 10 people.",
   "Over 10 years of experience in the IT industry. Available for remote contract and consulting work.",
 ];
-const email = "hello@abrunacci.dev";
-// The contact button prefers to break the address right after the @.
-const [emailUser, emailDomain, ...rest] = email.split("@");
-if (!emailUser || !emailDomain || rest.length > 0) {
-  throw new Error(`Not an email address: ${email}`);
-}
+// The contact form, served by backend/ (Caddy sends /contact there).
+const contactForm = "/contact";
 const github = "https://github.com/Abrunacci";
 const linkedin = "https://www.linkedin.com/in/abrunacci/";
 ---
@@ -85,11 +81,10 @@ const linkedin = "https://www.linkedin.com/in/abrunacci/";
       <p class="tagline">Backends for <span class="mark">GenAI and data products</span></p>
       <p class="location">Argentina · Remote · <span class="nowrap">US time zone overlap</span></p>
       <div class="actions">
-        <a class="btn btn--primary" href={`mailto:${email}`}><Icon name="mail" /><span>Email me<span class="visually-hidden"> at {email}</span></span></a>
+        <a class="btn btn--primary" href={contactForm}><Icon name="mail" /><span>Email me</span></a>
         <a class="btn btn--secondary" href={github}><Icon name="github" /><span>GitHub<span class="visually-hidden"> profile</span></span></a>
         <a class="btn btn--secondary" href={linkedin}><Icon name="linkedin" /><span>LinkedIn<span class="visually-hidden"> profile</span></span></a>
       </div>
-      <p class="email-address">{email}</p>
       <ul class="stack" aria-label="Technologies">
         {stack.map((item) => <li>{item}</li>)}
       </ul>
@@ -145,7 +140,7 @@ const linkedin = "https://www.linkedin.com/in/abrunacci/";
         <h2 id="contact-title">Need a senior Python backend engineer?</h2>
         <p class="contact-text">Tell me about your product, your team and what you need built:</p>
         <div class="actions">
-          <a class="btn btn--primary btn--lg" href={`mailto:${email}`}><Icon name="mail" /><span>{emailUser}@<wbr />{emailDomain}</span></a>
+          <a class="btn btn--primary btn--lg" href={contactForm}><Icon name="mail" /><span>Get in touch</span></a>
           <a class="btn btn--secondary" href={github}><Icon name="github" /><span>GitHub<span class="visually-hidden"> profile</span></span></a>
           <a class="btn btn--secondary" href={linkedin}><Icon name="linkedin" /><span>LinkedIn<span class="visually-hidden"> profile</span></span></a>
         </div>
