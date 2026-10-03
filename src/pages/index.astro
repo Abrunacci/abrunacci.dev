@@ -22,7 +22,7 @@ if (repeated) {
 
 // Shown above the name. Empty hides it.
 const availability = "Available for contract and consulting work";
-const stack = ["Python", "FastAPI", "PostgreSQL", "AWS", "Docker", "Terraform", "Ansible"];
+const stack = ["Python", "FastAPI", "PostgreSQL", "Databricks", "AWS", "Docker", "Terraform", "Ansible"];
 // The About section: one opening sentence, then short points.
 const aboutLead =
   "I make backends faster, more scalable and more robust: performance and process optimization is what I specialize in.";
@@ -32,6 +32,10 @@ const aboutPoints = [
   "Led multidisciplinary teams of up to 10 people.",
   "Over 10 years of experience in the IT industry. Available for remote contract and consulting work.",
 ];
+// The Contact section. Its title is also the contact form's title in
+// backend/src/contact/templates/form.html: keep both the same.
+const contactTitle = "Need a senior backend engineer for your GenAI or data product?";
+const contactText = "Tell me about your product, your team and what you need built.";
 // The contact form, served by backend/ (Caddy sends /contact there).
 const contactForm = "/contact";
 const github = "https://github.com/Abrunacci";
@@ -137,8 +141,8 @@ const linkedin = "https://www.linkedin.com/in/abrunacci/";
 
       <section id="contact" class="contact" aria-labelledby="contact-title">
         <p class="eyebrow" aria-hidden="true">Get in touch</p>
-        <h2 id="contact-title">Need a senior Python backend engineer?</h2>
-        <p class="contact-text">Tell me about your product, your team and what you need built:</p>
+        <h2 id="contact-title">{contactTitle}</h2>
+        <p class="contact-text">{contactText}</p>
         <div class="actions">
           <a class="btn btn--primary btn--lg" href={contactForm}><Icon name="mail" /><span>Get in touch</span></a>
           <a class="btn btn--secondary" href={github}><Icon name="github" /><span>GitHub<span class="visually-hidden"> profile</span></span></a>
