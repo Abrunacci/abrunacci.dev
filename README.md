@@ -24,6 +24,8 @@ public/               copied as is to the root of the site
   favicon.svg
   apple-touch-icon.png
   og-image.png        share preview (1200×630)
+  robots.txt          lets crawlers in and points them to the sitemap
+  sitemap.xml         the pages search engines should index
 dist/                 the built site (not committed)
 backend/              the contact form's service (FastAPI): serves /contact
                       and /api/*, mails each message; see backend/README.md
@@ -57,6 +59,9 @@ hash in every name (`photo.4f8cjK8z_Ny5af.avif`,
   changes: the page shows it instead of the monogram, and the build writes
   resized AVIF and WebP copies to `/assets/`, up to 624 px wide for
   high-density screens.
+- **Add a page:** list its URL in `public/sitemap.xml` if search engines
+  should index it. `/contact` is left out on purpose: it is a form with
+  nothing to find by searching.
 - **Change the share image or the touch icon:** edit the templates in
   `tools/` and run `CHROME=/path/to/chrome tools/render-images.sh` (after
   `npm ci`: the templates load Inter from `node_modules/`). The favicon is

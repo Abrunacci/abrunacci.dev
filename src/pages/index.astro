@@ -36,6 +36,16 @@ const aboutPoints = [
 const contactForm = "/contact";
 const github = "https://github.com/Abrunacci";
 const linkedin = "https://www.linkedin.com/in/abrunacci/";
+// Tells search engines who the page is about (schema.org Person), so a search
+// for the name can find it and link the profiles to it.
+const person = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Alejandro Brunacci",
+  jobTitle: "Senior Backend Engineer",
+  url: "https://abrunacci.dev/",
+  sameAs: [linkedin, github],
+};
 ---
 
 <!DOCTYPE html>
@@ -68,6 +78,7 @@ const linkedin = "https://www.linkedin.com/in/abrunacci/";
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <Font cssVariable="--font-inter" preload />
+  <script type="application/ld+json" set:html={JSON.stringify(person)} />
 </head>
 <body>
   <div class="page">
