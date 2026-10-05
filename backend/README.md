@@ -32,18 +32,21 @@ In this order:
    (`client_ip.py`, `limits.py`). Past that, discarded.
 5. **Spam mark.** More than 2 links, a link in the name, or link markup (HTML or BBCode) puts
    `[posible spam]` in the subject (`spam.py`). It is still mailed.
-6. **Daily limit.** 20 mails a day (Argentina time). Past that, the message is accepted and
-   written to the log instead of mailed, and one notice a day says so.
+6. **Daily limit.** 20 mails a day (Argentina time). Past that, the person sees the form again
+   with their text and is asked to try again tomorrow, and one notice a day says so.
 7. **Mail.** Subject `[abrunacci.dev] <name>`, `Reply-To` the sender, so a reply in the inbox
    goes straight to them. If Resend fails, the person sees the form again with their text and
    an error, and can retry.
 
 A discarded message gets the same confirmation page as a good one, so a bot cannot tell what
-stopped it. Every outcome is one JSON line in the log (`event`: `sent`, `held`, `discarded`
-with its `reason`, or `send_failed`). `discarded` and `held` carry the whole message, so none is
-lost. `send_failed` carries no personal data, only an ID, the time, the message's length and
-Resend's error (with the sender's name and email blanked out): the person still has their text
-on the form and can send it again.
+stopped it.
+
+Every outcome is one JSON line in the log: `event` (`sent`, `discarded`, `daily_limit` or
+`send_failed`), `reason` when there is one (why it was discarded, or Resend's error with the
+sender's name and email blanked out), a random `id`, the `time` (UTC) and the message's
+`length`. Nothing from the form is logged, nor the visitor's address: a discarded message is
+gone, and in every other case the person either got through or still has their text on the
+form.
 
 ### The visitor's address
 
