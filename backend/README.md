@@ -68,12 +68,15 @@ before a deploy still works after it.
 | `RESEND_API_KEY` | yes | A Resend key with sending access only. Secret. |
 | `FORM_SECRET` | yes | At least 32 characters; signs the time token. Secret, generated on the server. |
 | `MAIL_FROM` | yes | The sender, on the domain verified in Resend, e.g. `Formulario abrunacci.dev <no-reply@mail.abrunacci.dev>`. |
-| `MAIL_TO` | yes | Where messages go. |
+| `MAIL_TO` | yes | Where messages go. Secret, set on the server. |
 | `MAIL_SUBJECT_PREFIX` | no | Default `[abrunacci.dev]`. |
 | `SITE_URL` | no | Default `https://abrunacci.dev`; the pages link back to it. |
 | `TRUSTED_PROXY` | no | Caddy's container name, as Docker's DNS knows it. Empty: `X-Forwarded-For` is never read. |
 
 The app refuses to start when a required one is missing, naming the variable and never its value.
+
+On the server they come from infra's `projects.yml`; where each one is set is in
+[`docs/deploy.md`](../docs/deploy.md#the-backends-configuration).
 
 ## Development
 
