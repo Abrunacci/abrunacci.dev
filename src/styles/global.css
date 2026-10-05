@@ -311,6 +311,8 @@ h1 {
 
 .tagline {
   font-size: 1.1875rem;
+  /* A full sentence: even lines instead of one word left alone. */
+  text-wrap: balance;
 }
 
 /* A marker stroke under the part of the tagline that matters most. */
@@ -471,6 +473,67 @@ h2 {
   gap: 0.5rem 1.25rem;
   margin-top: auto;
   padding-top: 0.25rem;
+}
+
+/* Phones: the cards scroll sideways, one at a time, with the next one
+   showing at the edge. Desktop keeps the grid. */
+@media (max-width: 43.99rem) {
+  .projects {
+    grid-auto-flow: column;
+    grid-auto-columns: 85%;
+    /* Out to the edges of the screen, so cards slide in from there. */
+    margin-inline: -1.25rem;
+    padding: 0.25rem 1.25rem 1rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 1.25rem;
+  }
+
+  /* With the dots on, they replace the scrollbar. */
+  .projects:has(+ .carousel-dots:not([hidden])) {
+    scrollbar-width: none;
+  }
+
+  .projects:has(+ .carousel-dots:not([hidden]))::-webkit-scrollbar {
+    display: none;
+  }
+
+  .projects:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: -3px;
+  }
+
+  .project {
+    scroll-snap-align: start;
+  }
+
+  .carousel-dots:not([hidden]) {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .carousel-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: var(--muted);
+    opacity: 0.5;
+    transition: width 0.2s, opacity 0.2s;
+  }
+
+  .carousel-dot.is-current {
+    width: 1.5rem;
+    background: var(--accent);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 44rem) {
+  .carousel-dots {
+    display: none;
+  }
 }
 
 /* Contact: a card with the same halo as the header. */
