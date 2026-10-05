@@ -38,7 +38,8 @@
   h1 { margin: 0; font-size: 78px; white-space: nowrap; font-weight: 800; line-height: 1; letter-spacing: -0.045em; }
   p { margin: 0; }
   .role { font-size: 32px; white-space: nowrap; font-weight: 600; letter-spacing: -0.01em; }
-  .tagline { font-size: 32px; white-space: nowrap; color: #475569; }
+  /* The tagline is a full sentence: it wraps, unlike the lines above. */
+  .tagline { font-size: 28px; line-height: 1.35; color: #475569; text-wrap: balance; }
   .mark {
     color: #0f172a;
     background: linear-gradient(90deg, rgb(116 172 223 / 0.45), rgb(246 180 14 / 0.4)) no-repeat 0 88% / 100% 0.42em;
@@ -71,8 +72,8 @@
   <div class="halo"></div>
   <div class="text">
     <h1>Alejandro Brunacci</h1>
-    <p class="role">Senior Backend Engineer · Python &amp; FastAPI</p>
-    <p class="tagline">Backends for <span class="mark">GenAI and data products</span></p>
+    <p class="role">Senior Software Engineer</p>
+    <p class="tagline">I build web products end to end: <span class="mark">APIs, data pipelines and GenAI</span> in Python, with the frontend to ship them.</p>
     <p class="meta"><span>Argentina · Remote · US time zone overlap</span><span class="url">abrunacci.dev</span></p>
   </div>
   <div class="avatar"><span>AB</span></div>

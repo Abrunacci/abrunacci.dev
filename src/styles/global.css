@@ -311,6 +311,8 @@ h1 {
 
 .tagline {
   font-size: 1.1875rem;
+  /* A full sentence: even lines instead of one word left alone. */
+  text-wrap: balance;
 }
 
 /* A marker stroke under the part of the tagline that matters most. */
