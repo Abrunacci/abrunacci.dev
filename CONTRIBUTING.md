@@ -46,8 +46,10 @@ common changes and the deploy.
   install with `npm ci`.
 - Install scripts are disabled (`.npmrc`). A dependency that needs one has to
   be approved explicitly.
-- The published page ships no JavaScript. Adding any is a decision for its own
-  pull request, stating its size and why it is worth it.
+- The published page ships one small inline script: the dots of the projects
+  carousel on phones (about 0.6 KB, no dependencies). Everything else works
+  without it. Adding more is a decision for its own pull request, stating its
+  size and why it is worth it.
 
 ## Dependabot
 

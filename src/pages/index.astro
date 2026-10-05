@@ -122,8 +122,9 @@ const person = {
       <section aria-labelledby="projects-title">
         <p class="eyebrow" aria-hidden="true">Selected work</p>
         <h2 id="projects-title">Projects</h2>
-        <ul class="projects">
-          {/* Projects come from src/data/projects.yaml. */}
+        {/* Projects come from src/data/projects.yaml. On phones the list is a
+            carousel that scrolls sideways (see global.css). */}
+        <ul class="projects" aria-labelledby="projects-title">
           {projects.map(({ data: project }) => {
             // Only a title in another language needs its own element.
             const title = project.lang
@@ -152,6 +153,11 @@ const person = {
             );
           })}
         </ul>
+        {/* Which card the carousel shows. Hidden until the script below runs;
+            screen readers already hear the list and its length. */}
+        <div class="carousel-dots" aria-hidden="true" hidden>
+          {projects.map(() => <span class="carousel-dot"></span>)}
+        </div>
       </section>
 
       <section id="contact" class="contact" aria-labelledby="contact-title">
@@ -170,5 +176,38 @@ const person = {
       <p>© {new Date().getFullYear()} Alejandro Brunacci</p>
     </footer>
   </div>
+  <script>
+    // The projects carousel (phones only): marks the dot of the card in view,
+    // and lets the keyboard focus the list to scroll it with the arrow keys.
+    const list = document.querySelector<HTMLElement>(".projects");
+    const dotsBox = document.querySelector<HTMLElement>(".carousel-dots");
+    if (list && dotsBox && "IntersectionObserver" in window) {
+      const cards = [...list.children];
+      const dots = [...dotsBox.children];
+      const visible = new Map<Element, number>();
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) visible.set(entry.target, entry.intersectionRatio);
+          // The card that shows the most is the current one.
+          let current = 0;
+          cards.forEach((card, i) => {
+            if ((visible.get(card) ?? 0) > (visible.get(cards[current]!) ?? 0)) current = i;
+          });
+          dots.forEach((dot, i) => dot.classList.toggle("is-current", i === current));
+        },
+        { root: list, threshold: [0, 0.25, 0.5, 0.75, 1] },
+      );
+      cards.forEach((card) => observer.observe(card));
+
+      const phone = matchMedia("(max-width: 43.99rem)");
+      const setFocusable = () => {
+        if (phone.matches) list.tabIndex = 0;
+        else list.removeAttribute("tabindex");
+      };
+      setFocusable();
+      phone.addEventListener("change", setFocusable);
+      dotsBox.hidden = false;
+    }
+  </script>
 </body>
 </html>

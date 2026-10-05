@@ -4,8 +4,8 @@ Personal landing page of Alejandro Brunacci, served at https://abrunacci.dev.
 
 One static page built with [Astro](https://astro.build): the output is plain
 HTML with its CSS inline, one font file (Inter, self-hosted from the
-`@fontsource-variable/inter` package), no JavaScript and no third-party
-requests.
+`@fontsource-variable/inter` package), one small inline script (the dots of the
+projects carousel on phones, about 0.6 KB) and no third-party requests.
 
 ## Layout
 
