@@ -7,10 +7,6 @@ name: Deploy
 # user, one key per project, deploy.sh, deploy-backend) lives in the infra
 # repository: see "Deploying a project" and "Deploying a backend" in its
 # ansible/README.md.
-#
-# The backend is deployed only while the repository variable DEPLOY_BACKEND is
-# "true": until infra runs the backend, the image is published but not
-# deployed, and the site deploys as before.
 on:
   push:
     branches: [main]
@@ -28,10 +24,6 @@ concurrency:
 env:
   # Lowercase, as infra's projects.yml names it.
   IMAGE: ghcr.io/abrunacci/abrunacci-dev-backend
-  # Tagged versions kept in GHCR. The server keeps the last 5 releases plus the
-  # one before the latest deploy, so fewer than 6 could leave it unable to roll
-  # back to one.
-  KEEP_VERSIONS: 6
 
 jobs:
   check:
@@ -130,9 +122,11 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      # provenance and sbom off: with them the image is pushed as an index with
-      # untagged manifests, which the cleanup below would delete, breaking the
-      # image. This way it is one manifest, linux/amd64.
+      # provenance and sbom off: the digest names one manifest, linux/amd64,
+      # not an index with attestations.
+      #
+      # No version is ever deleted from GHCR: the package is public, so storage
+      # is free, and a rollback or a rebuilt server can always pull any release.
       - name: Build and push
         id: build
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -150,22 +144,6 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      # Cleanup in two steps. First the untagged versions: they lost every tag
-      # when the same commit was published again. Then, of what is left, only
-      # the newest KEEP_VERSIONS.
-      - name: Delete untagged versions
-        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
-        with:
-          package-name: abrunacci-dev-backend
-          package-type: container
-          min-versions-to-keep: 0
-          delete-only-untagged-versions: "true"
-      - name: Keep only the latest versions
-        uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
-        with:
-          package-name: abrunacci-dev-backend
-          package-type: container
-          min-versions-to-keep: ${{ env.KEEP_VERSIONS }}
 
   deploy:
     name: Deploy to production
@@ -216,7 +194,6 @@ jobs:
       # answer. A failure stops the job before the site is touched. stdin
       # closed: deploy-backend reads nothing.
       - name: Deploy the backend
-        if: vars.DEPLOY_BACKEND == 'true'
         shell: bash
         env:
           DIGEST: ${{ needs.publish.outputs.digest }}
@@ -230,10 +207,6 @@ jobs:
             -o BatchMode=yes \
             -o ConnectTimeout=15 \
             deploy@server.abrunacci.dev deploy-backend "$GITHUB_SHA" "$DIGEST" "$GITHUB_RUN_ID" </dev/null
-
-      - name: Skip the backend
-        if: vars.DEPLOY_BACKEND != 'true'
-        run: echo "::notice::Backend not deployed; set the repository variable DEPLOY_BACKEND to true once infra runs it."
 
       # The server's identity is always checked against the pinned line.
       - name: Deploy the site
@@ -311,7 +284,6 @@ jobs:
 
       # The public side of the backend: Caddy reaches it and it serves the form.
       - name: Check the published backend
-        if: vars.DEPLOY_BACKEND == 'true'
         shell: bash
         run: |
           set -euo pipefail
