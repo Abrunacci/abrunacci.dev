@@ -9,13 +9,28 @@
   summary: >-
     Compares the routes for turning US dollars in Payoneer into Argentine
     pesos, with the fees of every step, to show which one leaves you the most.
-    A FastAPI backend preloads the day's prices.
+    Its Python API stores the day's prices and prefills them. In Spanish and
+    English.
   # Backend first: what the project shows about backend work.
-  stack: [FastAPI, PostgreSQL, TypeScript, React, Vite]
+  stack: [Python, FastAPI, PostgreSQL, TypeScript, React, Vite]
   links:
     live: https://cuanto-cuesta.abrunacci.dev
     source: https://github.com/Abrunacci/cuanto-cuesta
   order: 10
+
+- id: berry-med
+  title: Berry Med
+  summary: >-
+    Software for health-check kiosks, built for a client. It connects the
+    client's backend with the medical devices in each kiosk: it reads vital
+    signs over USB or Bluetooth (blood oxygen, pulse, blood pressure,
+    temperature and a 7-lead ECG), sends them during each check and reports
+    each kiosk's status.
+  stack: [Python, asyncio, pyserial, Bleak, Pusher, PyInstaller]
+  # No live site: the software needs the kiosk's hardware to run.
+  links:
+    source: https://github.com/Abrunacci/berry_med
+  order: 15
 
 - id: epb-stock
   title: EPB Stock
@@ -29,9 +44,9 @@
 - id: data-pipeline
   title: data-pipeline
   summary: >-
-    Collects and validates market data on a schedule. Today it gathers the
-    exchange rates ¿Cuánto cuesta? needs, checking each source against a
-    second one.
+    Collects market data on a schedule, checks each value and sends it to the
+    app that uses it. Today it feeds ¿Cuánto cuesta? the exchange rates it
+    needs.
   stack: [Python, Pydantic, httpx, Docker]
   links:
     source: https://github.com/Abrunacci/data-pipeline
