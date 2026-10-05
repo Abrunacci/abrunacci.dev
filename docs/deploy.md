@@ -169,10 +169,11 @@ on every deploy, rollback or restart; see
 ### Logs and personal data
 
 The container's stdout and stderr go to the server's journal, tagged
-`backend.abrunacci-dev`, within a 1 GB cap for the whole server. Messages that
-were discarded or held are logged in full (name, email and text, see
-[`backend/README.md`](../backend/README.md#what-happens-to-a-message)): they
-stay on the server until the cap rotates them, and are not in the backups.
+`backend.abrunacci-dev`, within a 1 GB cap for the whole server. The backend
+logs one line per message with the event, its reason, an ID, the time and the
+message's length, and nothing from the form: no name, email, text or visitor
+address (see
+[`backend/README.md`](../backend/README.md#what-happens-to-a-message)).
 Changing what is logged is something to tell infra, which documents it.
 
 ## What the server does with the site
