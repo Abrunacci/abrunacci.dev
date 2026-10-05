@@ -30,10 +30,11 @@ GOOD = {"name": "Ada Lovelace", "email": "ada@example.com", "message": "Let's ta
 class FakeMailer:
     sent: list[Mail] = field(default_factory=list)
     failing: bool = False
+    error: str = "Resend answered 500: down"
 
     async def send(self, mail: Mail) -> None:
         if self.failing:
-            raise SendError("Resend answered 500: down")
+            raise SendError(self.error)
         self.sent.append(mail)
 
 
@@ -209,15 +210,31 @@ def test_past_the_daily_limit_messages_are_held(
     assert [e["message"] for e in held] == [f"Message {i}" for i in (20, 21)]
 
 
-def test_send_failure_keeps_the_text(form: Form, caplog: pytest.LogCaptureFixture) -> None:
+def test_send_failure_keeps_the_text_on_the_page(
+    form: Form, caplog: pytest.LogCaptureFixture
+) -> None:
     form.mailer.failing = True
     status, _, body = form.send()
     assert status == 503
     assert "could not be sent right now" in body
     assert "Let&#39;s talk." in body
     [event] = events(caplog)
+    assert event.keys() == {"event", "id", "time", "length", "error"}
     assert event["event"] == "send_failed"
-    assert event["message"] == "Let's talk."
+    assert event["time"] == "2027-01-15T08:00:10+00:00"
+    assert event["length"] == len("Let's talk.")
+    assert event["error"] == "Resend answered 500: down"
+
+
+def test_send_failure_logs_no_personal_data(form: Form, caplog: pytest.LogCaptureFixture) -> None:
+    form.mailer.failing = True
+    form.mailer.error = "Resend answered 422: Ada Lovelace <ada@example.com> is not valid"
+    form.send()
+    [event] = events(caplog)
+    assert event["error"] == "Resend answered 422: <name> <<email>> is not valid"
+    logged = json.dumps(event)
+    for value in GOOD.values():
+        assert not value or value not in logged
 
 
 def test_the_post_address_opened_by_hand(form: Form) -> None:

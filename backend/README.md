@@ -40,7 +40,10 @@ In this order:
 
 A discarded message gets the same confirmation page as a good one, so a bot cannot tell what
 stopped it. Every outcome is one JSON line in the log (`event`: `sent`, `held`, `discarded`
-with its `reason`, or `send_failed`); all but `sent` carry the whole message, so none is lost.
+with its `reason`, or `send_failed`). `discarded` and `held` carry the whole message, so none is
+lost. `send_failed` carries no personal data, only an ID, the time, the message's length and
+Resend's error (with the sender's name and email blanked out): the person still has their text
+on the form and can send it again.
 
 ### The visitor's address
 

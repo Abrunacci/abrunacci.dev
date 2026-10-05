@@ -1,13 +1,14 @@
 """The HTTP side: the form page, the endpoint it posts to, and the health check.
 
-Every step a message can take ends in the log, so none is lost even when it is not mailed:
+Every step a message can take ends in the log:
 
 - ``discarded``: a bot trap caught it (honeypot, time trap, per-sender limit). The sender sees
   the same confirmation as everyone else, so a bot cannot tell what stopped it.
 - ``held``: today's mail quota is used up. It is accepted and kept in the log, and one notice a
   day says so.
 - ``send_failed``: Resend did not take it. The person sees the form again with their text and
-  can retry.
+  can retry, so the log keeps only the error and what is needed to find the entry (an ID, the
+  time, the message's length), never who wrote it or what they wrote.
 - ``sent``: mailed.
 """
 
@@ -18,8 +19,10 @@ import logging
 import os
 import sys
 import time
+import uuid
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -184,7 +187,7 @@ def create_app(
             await request.app.state.mailer.send(_message_mail(settings, submission, flags))
         except SendError as error:
             daily.release(now)
-            _log("send_failed", sender, submission, spam=flags, error=str(error))
+            _log_send_failure(submission, error, now)
             return form_page(submission, status=503, error=SEND_FAILED)
         _log("sent", sender, spam=flags)
         return confirmation()
@@ -242,6 +245,23 @@ def _log(event: str, sender: str, submission: Submission | None = None, **extra:
     if submission is not None:
         entry |= {"name": submission.name, "email": submission.email, "message": submission.message}
     log.info(json.dumps(entry, ensure_ascii=False))
+
+
+def _log_send_failure(submission: Submission, error: SendError, now: float) -> None:
+    """No personal data: no address, name, email or text. Resend's answer is kept for the cause,
+    with the sender's name and email blanked in case it quotes them."""
+    reason = str(error)
+    for value, placeholder in ((submission.email, "<email>"), (submission.name, "<name>")):
+        if value:
+            reason = reason.replace(value, placeholder)
+    entry = {
+        "event": "send_failed",
+        "id": uuid.uuid4().hex,
+        "time": datetime.fromtimestamp(now, UTC).isoformat(timespec="seconds"),
+        "length": len(submission.message),
+        "error": reason,
+    }
+    log.error(json.dumps(entry, ensure_ascii=False))
 
 
 def _configure_logging() -> None:
