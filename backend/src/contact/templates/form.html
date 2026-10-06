@@ -65,6 +65,22 @@
 
     .form .btn { width: 100%; }
 
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .alternative {
+      margin-top: 1.5rem;
+      color: var(--muted);
+    }
+
+    .alternative a {
+      color: var(--accent-text);
+      font-weight: 600;
+      text-underline-offset: 0.2em;
+    }
+
     @media (min-width: 30rem) {
       .form .btn { width: auto; justify-self: start; }
     }
@@ -77,6 +93,18 @@
       height: 1px;
       overflow: hidden;
     }
+{% endblock %}
+{% block head %}
+  {# Without JavaScript there is no Turnstile token, so the form could never get through: it is
+     hidden and the address takes its place. #}
+  <noscript>
+    <style>
+      .form { display: none; }
+      .alternative[hidden] { display: block; }
+    </style>
+  </noscript>
+  {# Loads Cloudflare's widget and keeps the button disabled until it hands over a token. #}
+  <script src="/api/static/form.js" defer></script>
 {% endblock %}
 {% block main %}
       <p class="eyebrow">Get in touch</p>
@@ -115,6 +143,13 @@
           <label for="{{ honeypot_field }}">Leave this field empty</label>
           <input id="{{ honeypot_field }}" name="{{ honeypot_field }}" type="text" tabindex="-1" autocomplete="off">
         </div>
-        <button class="btn btn--primary" type="submit">Send message</button>
+        {# Managed, shown only when Cloudflare needs a click. The callbacks are in form.js. #}
+        <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-action="contact"
+          data-appearance="interaction-only" data-callback="turnstileReady"
+          data-expired-callback="turnstileExpired" data-timeout-callback="turnstileExpired"
+          data-error-callback="turnstileFailed"></div>
+        <button class="btn btn--primary" type="submit" disabled>Send message</button>
       </form>
+      {# Shown without JavaScript, or by form.js when the widget fails. #}
+      <p class="alternative" id="alternative" hidden>You can also write to me directly at <a href="mailto:{{ contact_address }}">{{ contact_address }}</a>.</p>
 {% endblock %}

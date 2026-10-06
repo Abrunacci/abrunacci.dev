@@ -213,6 +213,8 @@ class TestSettings:
         "FORM_SECRET": "f" * 64,
         "MAIL_FROM": "abrunacci.dev <contact@mail.abrunacci.dev>",
         "MAIL_TO": "hello@abrunacci.dev",
+        "TURNSTILE_SITE_KEY": "1x00000000000000000000AA",
+        "TURNSTILE_SECRET_KEY": "1x0000000000000000000000000000000AA",
     }
 
     def test_defaults(self) -> None:
@@ -221,7 +223,17 @@ class TestSettings:
         assert settings.site_url == "https://abrunacci.dev"
         assert settings.trusted_proxy == ""
 
-    @pytest.mark.parametrize("name", ["RESEND_API_KEY", "FORM_SECRET", "MAIL_FROM", "MAIL_TO"])
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "RESEND_API_KEY",
+            "FORM_SECRET",
+            "MAIL_FROM",
+            "MAIL_TO",
+            "TURNSTILE_SITE_KEY",
+            "TURNSTILE_SECRET_KEY",
+        ],
+    )
     def test_required(self, name: str) -> None:
         with pytest.raises(SettingsError, match=name):
             Settings.from_env({**self.ENV, name: " "})
@@ -234,3 +246,4 @@ class TestSettings:
         text = repr(Settings.from_env(self.ENV))
         assert "re_test" not in text
         assert "f" * 64 not in text
+        assert "1x0000000000000000000000000000000AA" not in text

@@ -10,6 +10,8 @@ import re
 from dataclasses import dataclass, field
 from urllib.parse import parse_qs
 
+from contact.turnstile import RESPONSE_FIELD
+
 MAX_BODY_BYTES = 32 * 1024
 """Every field at its maximum, percent-encoded, fits several times over."""
 
@@ -34,6 +36,8 @@ class Submission:
     message: str
     honeypot: str
     token: str
+    turnstile: str
+    """The token Cloudflare's widget put in the form; empty when it did not run."""
     errors: dict[str, str] = field(default_factory=dict)
     """Field name to the sentence shown under it. Empty when every field is valid."""
 
@@ -70,5 +74,6 @@ def parse(body: bytes) -> Submission:
         message=message,
         honeypot=value(HONEYPOT_FIELD),
         token=value(TOKEN_FIELD),
+        turnstile=value(RESPONSE_FIELD),
         errors=errors,
     )

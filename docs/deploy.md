@@ -118,9 +118,11 @@ one is a pull request in infra. What each one means is in
 | --- | --- | --- |
 | `MAIL_FROM` | public, `Formulario abrunacci.dev <no-reply@mail.abrunacci.dev>` | `env` in `projects.yml` |
 | `TRUSTED_PROXY` | public, `caddy` | `env` in `projects.yml` |
+| `TURNSTILE_SITE_KEY` | public, the Turnstile widget's site key | `env` in `projects.yml` |
 | `FORM_SECRET` | secret, generated on the server (64 hex characters) | infra's playbook |
 | `RESEND_API_KEY` | secret, a Resend key with sending access only | the admin, `project-secret abrunacci-dev set RESEND_API_KEY` |
 | `MAIL_TO` | secret | the admin, `project-secret abrunacci-dev set MAIL_TO` |
+| `TURNSTILE_SECRET_KEY` | secret, the Turnstile widget's secret key | the admin, `project-secret abrunacci-dev set TURNSTILE_SECRET_KEY` |
 
 `MAIL_SUBJECT_PREFIX` and `SITE_URL` are optional and not set on the server:
 their defaults are the production values.
@@ -146,7 +148,7 @@ the image that reads it.
 - **No capabilities**, `no-new-privileges`, at most 256 processes.
 - **Listens on `0.0.0.0:8000`**, with no published ports. Its only network is
   `edge-abrunacci-dev`, shared only with Caddy, which is also its way out to
-  Resend.
+  Resend and to Cloudflare's siteverify (`challenges.cloudflare.com`).
 - **The visitor's address.** Caddy has no `trusted_proxies`, so it always
   writes the real address (IPv4 or IPv6) in `X-Forwarded-For`. On
   `edge-abrunacci-dev`, the name `caddy` resolves to Caddy's address there,
@@ -201,7 +203,7 @@ In the CI log, the server's message appears as is:
 | --- | --- | --- |
 | `Permission denied (publickey)` | The key in `DEPLOY_SSH_KEY` is not the project's `deploy_key` in `projects.yml`. | Check the secret; a new key needs an infra pull request. |
 | `Host key verification failed` | `DEPLOY_KNOWN_HOSTS` does not match the server. | Generate it again (infra's guide, "Deploying a project"). |
-| `deploy-backend: the backend's secrets are not ready: …` | `RESEND_API_KEY` or `MAIL_TO` is missing, or there is one too many. | Admin: `project-secret abrunacci-dev list`. |
+| `deploy-backend: the backend's secrets are not ready: …` | `RESEND_API_KEY`, `MAIL_TO` or `TURNSTILE_SECRET_KEY` is missing, or there is one too many. | Admin: `project-secret abrunacci-dev list`. |
 | `deploy-backend: cannot pull …: unauthorized` (or `not found`) | The package is no longer public, or the digest does not exist. | Check the package's visibility in GHCR. |
 | `deploy-backend: release … not healthy within 60s (…); back to release …, which is healthy` | The new image did not answer `/api/health`. | Admin: `journalctl -t backend-log`. The container's log never reaches CI. |
 | `… which is NOT healthy either` | The previous release is not healthy either. | Urgent. Admin: `backend-status abrunacci-dev`. |
