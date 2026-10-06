@@ -1,9 +1,9 @@
 """Settings from the environment, checked once at startup.
 
-The server's values come from infra's projects.yml: ``RESEND_API_KEY`` is a secret the admin
-sets, ``FORM_SECRET`` one the playbook generates, the rest are public ``env``. A missing or
-unusable value stops the app from starting, with a message that names the variable and never
-its value.
+The server's values come from infra's projects.yml: ``RESEND_API_KEY`` and ``MAIL_TO`` are
+secrets the admin sets, ``FORM_SECRET`` one the playbook generates, the rest are public ``env``
+(see docs/deploy.md). A missing or unusable value stops the app from starting, with a message
+that names the variable and never its value.
 """
 
 from __future__ import annotations
