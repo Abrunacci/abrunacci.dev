@@ -4,13 +4,13 @@ Every step a message can take ends in the log, as one line with the event, its r
 the time and the message's length. Never anything from the form: no name, email or text, and
 not the visitor's address.
 
-- ``discarded``: a bot trap caught it (honeypot, time trap, per-sender limit). The sender sees
-  the same confirmation as everyone else, so a bot cannot tell what stopped it.
+- ``discarded``: a bot trap caught it (honeypot, time trap, per-sender limit, Turnstile). The
+  sender sees the same confirmation as everyone else, so a bot cannot tell what stopped it.
 - ``daily_limit``: today's mail quota is used up. The person sees the form again with their
   text and is asked to try tomorrow, and one notice a day says so.
 - ``send_failed``: Resend did not take it. The person sees the form again with their text and
   can retry.
-- ``sent``: mailed.
+- ``sent``: mailed. With reason ``turnstile_unavailable`` when Cloudflare could not check it.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, PackageLoader, select_autoescape
 
-from contact import client_ip, form_token, spam
+from contact import client_ip, form_token, spam, turnstile
 from contact.limits import MAILS_PER_DAY, DailyCap, SenderLimit
 from contact.mailer import Mail, Mailer, ResendMailer, SendError
 from contact.settings import Settings
@@ -56,10 +56,18 @@ SENT_QUERY = "status=sent"
 SEND_FAILED = "Your message could not be sent right now. Please try again in a few minutes."
 DAILY_LIMIT = "The form has reached its limit for today. Please try again tomorrow."
 
-# No scripts at all. Styles are inline in each page; the font is served from /api/static.
+CONTACT_ADDRESS = "hello@abrunacci.dev"
+"""Offered on the form to whoever cannot use it: without JavaScript, or when Turnstile fails."""
+
+UNVERIFIED_MARK = "[sin verificar]"
+"""In the subject of a message that Turnstile could not check."""
+
+# Scripts: the form's own (/api/static/form.js) and Cloudflare's Turnstile, which runs its check
+# in an iframe. Styles are inline in each page; the font is served from /api/static.
 CONTENT_SECURITY_POLICY = (
-    "default-src 'none'; style-src 'unsafe-inline'; font-src 'self'; img-src 'self'; "
-    "form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+    "default-src 'none'; script-src 'self' https://challenges.cloudflare.com; "
+    "frame-src https://challenges.cloudflare.com; style-src 'unsafe-inline'; font-src 'self'; "
+    "img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
 )
 
 log = logging.getLogger("contact")
@@ -69,19 +77,19 @@ def create_app(
     settings: Settings | None = None,
     mailer: Mailer | None = None,
     clock: Callable[[], float] = time.time,
+    verifier: turnstile.Verifier | None = None,
 ) -> FastAPI:
     settings = settings or Settings.from_env(os.environ)
     _configure_logging()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        if mailer is not None:
-            app.state.mailer = mailer
-            yield
-            return
         async with httpx.AsyncClient() as client:
-            app.state.mailer = ResendMailer(
+            app.state.mailer = mailer or ResendMailer(
                 client, settings.resend_api_key, settings.mail_from, settings.mail_to
+            )
+            app.state.verifier = verifier or turnstile.Siteverify(
+                client, settings.turnstile_secret_key
             )
             yield
 
@@ -105,6 +113,8 @@ def create_app(
             limits={"name": NAME_MAX, "email": EMAIL_MAX, "message": MESSAGE_MAX},
             honeypot_field=HONEYPOT_FIELD,
             token_field=TOKEN_FIELD,
+            turnstile_site_key=settings.turnstile_site_key,
+            contact_address=CONTACT_ADDRESS,
             **context,
         )
         return HTMLResponse(
@@ -177,6 +187,13 @@ def create_app(
         if not senders.allow(sender, now):
             _log("discarded", now, submission, reason="sender_limit")
             return confirmation()
+        # After the checks that cost nothing, so a bot they catch costs no call to Cloudflare.
+        check = await request.app.state.verifier.verify(submission.turnstile)
+        if check.verdict is turnstile.Verdict.FAILED:
+            _log("discarded", now, submission, reason=f"turnstile: {check.detail or 'no'}")
+            return confirmation()
+        # Cloudflare gave no usable answer: mailed anyway, marked (see turnstile.py).
+        unchecked = check.detail if check.verdict is turnstile.Verdict.UNAVAILABLE else ""
 
         flags = spam.reasons(submission.name, submission.message)
         if not daily.reserve(now):
@@ -186,12 +203,14 @@ def create_app(
             return form_page(submission, status=429, error=DAILY_LIMIT)
 
         try:
-            await request.app.state.mailer.send(_message_mail(settings, submission, flags))
+            await request.app.state.mailer.send(
+                _message_mail(settings, submission, flags, unchecked)
+            )
         except SendError as error:
             daily.release(now)
             _log("send_failed", now, submission, reason=_without(submission, str(error)))
             return form_page(submission, status=503, error=SEND_FAILED)
-        _log("sent", now, submission)
+        _log("sent", now, submission, reason=unchecked and f"turnstile_unavailable: {unchecked}")
         return confirmation()
 
     return app
@@ -207,11 +226,19 @@ async def _read_body(request: Request) -> bytes | None:
     return bytes(body)
 
 
-def _message_mail(settings: Settings, submission: Submission, flags: list[str]) -> Mail:
-    subject = f"{settings.subject_prefix} {submission.name}"
+def _message_mail(
+    settings: Settings, submission: Submission, flags: list[str], unchecked: str
+) -> Mail:
+    """``unchecked``: why Turnstile could not check the message, or empty when it did."""
+    marks = [settings.subject_prefix]
+    if unchecked:
+        marks.append(UNVERIFIED_MARK)
     if flags:
-        subject = f"{settings.subject_prefix} {spam.SUBJECT_MARK} {submission.name}"
+        marks.append(spam.SUBJECT_MARK)
+    subject = f"{' '.join(marks)} {submission.name}"
     lines = [f"From: {submission.name} <{submission.email}>", ""]
+    if unchecked:
+        lines += [f"Not checked by Turnstile: no usable answer from Cloudflare ({unchecked}).", ""]
     if flags:
         lines += [f"Marked as possible spam: {'; '.join(flags)}.", ""]
     lines += [submission.message, "", "--", f"Sent from the contact form of {settings.site_url}"]

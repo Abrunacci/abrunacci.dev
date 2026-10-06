@@ -50,6 +50,9 @@ common changes and the deploy.
   carousel on phones (about 0.6 KB, no dependencies). Everything else works
   without it. Adding more is a decision for its own pull request, stating its
   size and why it is worth it.
+- The contact page, served by the backend, loads its own script
+  (`backend/src/contact/static/form.js`, under 1 KB) and Cloudflare Turnstile.
+  Without JavaScript it hides the form and offers the email address instead.
 
 ## Dependabot
 

@@ -42,3 +42,4 @@ files = ["src", "tests"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+markers = ["live: calls a real outside service (Cloudflare); needs the internet"]
