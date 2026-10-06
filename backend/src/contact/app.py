@@ -1,11 +1,13 @@
 """The HTTP side: the form page, the endpoint it posts to, and the health check.
 
-Every step a message can take ends in the log, so none is lost even when it is not mailed:
+Every step a message can take ends in the log, as one line with the event, its reason, an ID,
+the time and the message's length. Never anything from the form: no name, email or text, and
+not the visitor's address.
 
 - ``discarded``: a bot trap caught it (honeypot, time trap, per-sender limit). The sender sees
   the same confirmation as everyone else, so a bot cannot tell what stopped it.
-- ``held``: today's mail quota is used up. It is accepted and kept in the log, and one notice a
-  day says so.
+- ``daily_limit``: today's mail quota is used up. The person sees the form again with their
+  text and is asked to try tomorrow, and one notice a day says so.
 - ``send_failed``: Resend did not take it. The person sees the form again with their text and
   can retry.
 - ``sent``: mailed.
@@ -18,8 +20,10 @@ import logging
 import os
 import sys
 import time
+import uuid
 from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -50,6 +54,7 @@ POST_PATH = "/api/contact"
 SENT_QUERY = "status=sent"
 
 SEND_FAILED = "Your message could not be sent right now. Please try again in a few minutes."
+DAILY_LIMIT = "The form has reached its limit for today. Please try again tomorrow."
 
 # No scripts at all. Styles are inline in each page; the font is served from /api/static.
 CONTENT_SECURITY_POLICY = (
@@ -157,36 +162,36 @@ def create_app(
 
         body = await _read_body(request)
         if body is None:
-            _log("discarded", sender, reason="too_large")
+            _log("discarded", now, reason="too_large")
             return confirmation()
         submission = parse(body)
 
         if submission.honeypot:
-            _log("discarded", sender, submission, reason="honeypot")
+            _log("discarded", now, submission, reason="honeypot")
             return confirmation()
         if problem := form_token.check(settings.form_secret, submission.token, now):
-            _log("discarded", sender, submission, reason=problem.value)
+            _log("discarded", now, submission, reason=problem.value)
             return confirmation()
         if submission.errors:
             return form_page(submission, status=400)
         if not senders.allow(sender, now):
-            _log("discarded", sender, submission, reason="sender_limit")
+            _log("discarded", now, submission, reason="sender_limit")
             return confirmation()
 
         flags = spam.reasons(submission.name, submission.message)
         if not daily.reserve(now):
-            _log("held", sender, submission, spam=flags)
+            _log("daily_limit", now, submission)
             if daily.notice_due(now):
                 await _send_notice(request.app.state.mailer, settings, now, daily)
-            return confirmation()
+            return form_page(submission, status=429, error=DAILY_LIMIT)
 
         try:
             await request.app.state.mailer.send(_message_mail(settings, submission, flags))
         except SendError as error:
             daily.release(now)
-            _log("send_failed", sender, submission, spam=flags, error=str(error))
+            _log("send_failed", now, submission, reason=_without(submission, str(error)))
             return form_page(submission, status=503, error=SEND_FAILED)
-        _log("sent", sender, spam=flags)
+        _log("sent", now, submission)
         return confirmation()
 
     return app
@@ -220,9 +225,9 @@ async def _send_notice(mailer: Mailer, settings: Settings, now: float, daily: Da
             [
                 f"The contact form mailed {MAILS_PER_DAY} messages today, its daily limit.",
                 "",
-                "It keeps accepting messages, but until midnight (Argentina time) it writes them",
-                "to the backend's log instead of mailing them, as entries with",
-                '"event": "held". None is lost.',
+                "Until midnight (Argentina time) it turns messages away: the person sees the form",
+                "again with their text and is asked to try again tomorrow. The backend's log has",
+                'one "daily_limit" entry for each, without its content.',
                 "",
                 "This notice is sent once a day.",
             ]
@@ -231,17 +236,34 @@ async def _send_notice(mailer: Mailer, settings: Settings, now: float, daily: Da
     try:
         await mailer.send(notice)
     except SendError as error:
-        # Tried again with the next held message.
+        # Tried again with the next message past the limit.
         log.error(json.dumps({"event": "notice_failed", "error": str(error)}))
         return
     daily.notice_sent(now)
 
 
-def _log(event: str, sender: str, submission: Submission | None = None, **extra: Any) -> None:
-    entry: dict[str, Any] = {"event": event, "sender": sender, **extra}
+def _log(event: str, now: float, submission: Submission | None = None, reason: str = "") -> None:
+    """One line per outcome, with nothing that identifies the person or repeats what they wrote.
+
+    The ID tells one entry from another; the length is the message's, in characters."""
+    entry: dict[str, Any] = {
+        "event": event,
+        "id": uuid.uuid4().hex,
+        "time": datetime.fromtimestamp(now, UTC).isoformat(timespec="seconds"),
+    }
+    if reason:
+        entry["reason"] = reason
     if submission is not None:
-        entry |= {"name": submission.name, "email": submission.email, "message": submission.message}
+        entry["length"] = len(submission.message)
     log.info(json.dumps(entry, ensure_ascii=False))
+
+
+def _without(submission: Submission, text: str) -> str:
+    """``text`` with the sender's name and email blanked, in case Resend's answer quotes them."""
+    for value, placeholder in ((submission.email, "<email>"), (submission.name, "<name>")):
+        if value:
+            text = text.replace(value, placeholder)
+    return text
 
 
 def _configure_logging() -> None:
