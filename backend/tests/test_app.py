@@ -30,10 +30,11 @@ GOOD = {"name": "Ada Lovelace", "email": "ada@example.com", "message": "Let's ta
 class FakeMailer:
     sent: list[Mail] = field(default_factory=list)
     failing: bool = False
+    error: str = "Resend answered 500: down"
 
     async def send(self, mail: Mail) -> None:
         if self.failing:
-            raise SendError("Resend answered 500: down")
+            raise SendError(self.error)
         self.sent.append(mail)
 
 
@@ -89,6 +90,13 @@ def _capture(caplog: pytest.LogCaptureFixture) -> None:
 SENT = "/contact?status=sent"
 
 
+def assert_no_form_content(event: dict[str, object]) -> None:
+    assert not {"name", "email", "message", "sender"} & event.keys()
+    logged = json.dumps(event)
+    for value in GOOD.values():
+        assert not value or value not in logged
+
+
 def test_health(form: Form) -> None:
     assert form.client.get("/api/health").json() == {"status": "ok"}
 
@@ -115,7 +123,10 @@ def test_a_good_message_is_mailed(form: Form, caplog: pytest.LogCaptureFixture) 
     assert mail.subject == "[abrunacci.dev] Ada Lovelace"
     assert mail.reply_to == "ada@example.com"
     assert "Let's talk." in mail.text
-    assert events(caplog) == [{"event": "sent", "sender": "unknown", "spam": []}]
+    [event] = events(caplog)
+    assert event.keys() == {"event", "id", "time", "length"}
+    assert event["event"] == "sent"
+    assert event["length"] == len("Let's talk.")
 
 
 def test_possible_spam_is_mailed_with_a_mark(form: Form) -> None:
@@ -145,8 +156,7 @@ def test_bots_get_the_same_confirmation(
     [event] = events(caplog)
     assert event["event"] == "discarded"
     assert event["reason"] == reason
-    # Kept in the log in case a person was caught by mistake.
-    assert event["message"] == "Let's talk."
+    assert_no_form_content(event)
 
 
 def test_a_forged_token(form: Form, caplog: pytest.LogCaptureFixture) -> None:
@@ -162,7 +172,9 @@ def test_a_huge_body_is_discarded(form: Form, caplog: pytest.LogCaptureFixture) 
         "/api/contact", data={"message": "x" * 40_000}, follow_redirects=False
     )
     assert response.headers["location"] == SENT
-    assert events(caplog) == [{"event": "discarded", "sender": "unknown", "reason": "too_large"}]
+    [event] = events(caplog)
+    assert event.keys() == {"event", "id", "time", "reason"}
+    assert (event["event"], event["reason"]) == ("discarded", "too_large")
 
 
 def test_errors_show_the_form_again_with_the_text(form: Form) -> None:
@@ -193,31 +205,53 @@ def test_the_per_sender_limit(form: Form, caplog: pytest.LogCaptureFixture) -> N
     assert events(caplog)[-1]["reason"] == "sender_limit"
 
 
-def test_past_the_daily_limit_messages_are_held(
+def test_past_the_daily_limit_messages_are_turned_away(
     form: Form, caplog: pytest.LogCaptureFixture
 ) -> None:
     form.clock.now = datetime(2026, 10, 2, tzinfo=LOCAL_TIME).timestamp()
     for i in range(MAILS_PER_DAY + 2):
         # Within the same day, an hour apart so the per-sender limit stays out of the way.
         form.clock.now += 3600
-        assert form.send(message=f"Message {i}")[1] == SENT
+        status, location, body = form.send(message=f"Message {i}")
+        if i < MAILS_PER_DAY:
+            assert (status, location) == (303, SENT)
+        else:
+            assert status == 429
+            assert "limit for today" in body
+            assert f"Message {i}" in body
     mailed = [m for m in form.mailer.sent if "Daily limit" not in m.subject]
     notices = [m for m in form.mailer.sent if "Daily limit" in m.subject]
-    held = [e for e in events(caplog) if e["event"] == "held"]
+    over = [e for e in events(caplog) if e["event"] == "daily_limit"]
     assert len(mailed) == MAILS_PER_DAY
     assert len(notices) == 1
-    assert [e["message"] for e in held] == [f"Message {i}" for i in (20, 21)]
+    assert len(over) == 2
+    for event in events(caplog):
+        assert_no_form_content(event)
 
 
-def test_send_failure_keeps_the_text(form: Form, caplog: pytest.LogCaptureFixture) -> None:
+def test_send_failure_keeps_the_text_on_the_page(
+    form: Form, caplog: pytest.LogCaptureFixture
+) -> None:
     form.mailer.failing = True
     status, _, body = form.send()
     assert status == 503
     assert "could not be sent right now" in body
     assert "Let&#39;s talk." in body
     [event] = events(caplog)
+    assert event.keys() == {"event", "id", "time", "length", "reason"}
     assert event["event"] == "send_failed"
-    assert event["message"] == "Let's talk."
+    assert event["time"] == "2027-01-15T08:00:10+00:00"
+    assert event["length"] == len("Let's talk.")
+    assert event["reason"] == "Resend answered 500: down"
+
+
+def test_send_failure_logs_no_personal_data(form: Form, caplog: pytest.LogCaptureFixture) -> None:
+    form.mailer.failing = True
+    form.mailer.error = "Resend answered 422: Ada Lovelace <ada@example.com> is not valid"
+    form.send()
+    [event] = events(caplog)
+    assert event["reason"] == "Resend answered 422: <name> <<email>> is not valid"
+    assert_no_form_content(event)
 
 
 def test_the_post_address_opened_by_hand(form: Form) -> None:
