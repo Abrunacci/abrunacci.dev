@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from enum import StrEnum
 from urllib.parse import parse_qs
 
+from contact.language import DEFAULT_LANGUAGE, LANGUAGE_FIELD, Language, from_parameter
 from contact.turnstile import RESPONSE_FIELD
 
 MAX_BODY_BYTES = 32 * 1024
@@ -29,6 +31,14 @@ TOKEN_FIELD = "opened"
 _EMAIL = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 
 
+class Problem(StrEnum):
+    """What is wrong with a field. The sentence shown under it is in ``texts.py``."""
+
+    MISSING = "missing"
+    TOO_LONG = "too_long"
+    INVALID = "invalid"
+
+
 @dataclass(frozen=True, slots=True)
 class Submission:
     name: str
@@ -38,8 +48,10 @@ class Submission:
     token: str
     turnstile: str
     """The token Cloudflare's widget put in the form; empty when it did not run."""
-    errors: dict[str, str] = field(default_factory=dict)
-    """Field name to the sentence shown under it. Empty when every field is valid."""
+    language: Language = DEFAULT_LANGUAGE
+    """The form's language, from its hidden field."""
+    errors: dict[str, Problem] = field(default_factory=dict)
+    """Field name to what is wrong with it. Empty when every field is valid."""
 
 
 def parse(body: bytes) -> Submission:
@@ -56,17 +68,17 @@ def parse(body: bytes) -> Submission:
 
     errors = {}
     if not name:
-        errors["name"] = "Enter your name."
+        errors["name"] = Problem.MISSING
     elif len(name) > NAME_MAX:
-        errors["name"] = f"Keep the name under {NAME_MAX} characters."
+        errors["name"] = Problem.TOO_LONG
     if not email:
-        errors["email"] = "Enter your email address, so I can reply."
+        errors["email"] = Problem.MISSING
     elif len(email) > EMAIL_MAX or not _EMAIL.fullmatch(email):
-        errors["email"] = "Enter a valid email address, like name@company.com."
+        errors["email"] = Problem.INVALID
     if not message:
-        errors["message"] = "Write a message."
+        errors["message"] = Problem.MISSING
     elif len(message) > MESSAGE_MAX:
-        errors["message"] = f"Keep the message under {MESSAGE_MAX:,} characters."
+        errors["message"] = Problem.TOO_LONG
 
     return Submission(
         name=name,
@@ -75,5 +87,6 @@ def parse(body: bytes) -> Submission:
         honeypot=value(HONEYPOT_FIELD),
         token=value(TOKEN_FIELD),
         turnstile=value(RESPONSE_FIELD),
+        language=from_parameter(value(LANGUAGE_FIELD)),
         errors=errors,
     )

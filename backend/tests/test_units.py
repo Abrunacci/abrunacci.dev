@@ -9,9 +9,11 @@ from typing import ClassVar
 import pytest
 
 from contact import client_ip, form_token, spam
+from contact.language import LANGUAGES, from_parameter
 from contact.limits import LOCAL_TIME, MAILS_PER_DAY, SENDS_PER_WINDOW, DailyCap, SenderLimit
 from contact.settings import Settings, SettingsError
-from contact.submission import MESSAGE_MAX, parse
+from contact.submission import MESSAGE_MAX, NAME_MAX, Problem, parse
+from contact.texts import TEXTS
 
 SECRET = b"s" * 64
 OPENED = 1_800_000_000.0
@@ -247,3 +249,34 @@ class TestSettings:
         assert "re_test" not in text
         assert "f" * 64 not in text
         assert "1x0000000000000000000000000000000AA" not in text
+
+
+class TestLanguages:
+    def test_a_parameter_names_a_language_or_gets_the_default(self) -> None:
+        assert from_parameter("es") == "es"
+        assert from_parameter("en") == "en"
+        for other in (None, "", "ES", "fr", "es-AR"):
+            assert from_parameter(other) == "en"
+
+    def test_the_form_carries_its_language(self) -> None:
+        assert parse(b"name=Ada&email=a%40b.co&message=hi&lang=es").language == "es"
+        assert parse(b"name=Ada&email=a%40b.co&message=hi").language == "en"
+
+    def test_every_language_has_every_text(self) -> None:
+        assert set(TEXTS) == set(LANGUAGES)
+        for texts in TEXTS.values():
+            assert set(texts.labels) == {"name", "email", "message"}
+            assert all(texts.errors.values())
+
+    def test_every_problem_parse_reports_has_a_sentence(self) -> None:
+        bodies = [
+            b"name=&email=&message=",
+            f"name={'x' * (NAME_MAX + 1)}&email=nope&message={'x' * (MESSAGE_MAX + 1)}".encode(),
+        ]
+        reported = {(f, p) for body in bodies for f, p in parse(body).errors.items()}
+        assert len(reported) == 6
+        for texts in TEXTS.values():
+            assert set(texts.errors) == reported
+
+    def test_problems_are_codes_not_sentences(self) -> None:
+        assert parse(b"name=&email=a%40b.co&message=hi").errors == {"name": Problem.MISSING}

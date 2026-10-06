@@ -74,8 +74,19 @@
     <h1>Alejandro Brunacci</h1>
     <p class="role">Senior Software Engineer</p>
     <p class="tagline">I build web products end to end: <span class="mark">APIs, data pipelines and GenAI</span> in Python, with the frontend to ship them.</p>
-    <p class="meta"><span>Argentina · Remote · US time zone overlap</span><span class="url">abrunacci.dev</span></p>
+    <p class="meta"><span class="location">Argentina · Remote · US time zone overlap</span><span class="url">abrunacci.dev</span></p>
   </div>
   <div class="avatar"><span>AB</span></div>
+  <script>
+    // With ?lang=es the same layout carries the Spanish texts of src/i18n/es.ts
+    // (og-image-es.png, see render-images.sh).
+    if (new URLSearchParams(location.search).get("lang") === "es") {
+      document.documentElement.lang = "es";
+      document.querySelector(".role").textContent = "Desarrollador de software senior";
+      document.querySelector(".tagline").innerHTML =
+        'Hago productos web de punta a punta: <span class="mark">APIs, pipelines de datos y GenAI</span> en Python, con el frontend incluido.';
+      document.querySelector(".location").textContent = "Argentina · Remoto";
+    }
+  </script>
 </body>
 </html>

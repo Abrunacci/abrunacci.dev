@@ -33,6 +33,7 @@ from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, PackageLoader, select_autoescape
 
 from contact import client_ip, form_token, spam, turnstile
+from contact.language import DEFAULT_LANGUAGE, LANGUAGE_FIELD, Language, from_parameter
 from contact.limits import MAILS_PER_DAY, DailyCap, SenderLimit
 from contact.mailer import Mail, Mailer, ResendMailer, SendError
 from contact.settings import Settings
@@ -46,15 +47,14 @@ from contact.submission import (
     Submission,
     parse,
 )
+from contact.texts import TEXTS
 
 FORM_PATH = "/contact"
 """Where the form page is served. Caddy sends this path, and /api/*, to this container."""
 
 POST_PATH = "/api/contact"
 SENT_QUERY = "status=sent"
-
-SEND_FAILED = "Your message could not be sent right now. Please try again in a few minutes."
-DAILY_LIMIT = "The form has reached its limit for today. Please try again tomorrow."
+"""With ``&lang=…`` after it when the form was not in the default language."""
 
 CONTACT_ADDRESS = "hello@abrunacci.dev"
 """Offered on the form to whoever cannot use it: without JavaScript, or when Turnstile fails."""
@@ -106,8 +106,10 @@ def create_app(
     senders = SenderLimit()
     daily = DailyCap()
 
-    def page(template: str, status: int = 200, **context: Any) -> HTMLResponse:
+    def page(template: str, language: Language, status: int = 200, **context: Any) -> HTMLResponse:
         html = templates.get_template(template).render(
+            t=TEXTS[language],
+            language_field=LANGUAGE_FIELD,
             site_url=settings.site_url,
             post_path=POST_PATH,
             limits={"name": NAME_MAX, "email": EMAIL_MAX, "message": MESSAGE_MAX},
@@ -128,13 +130,19 @@ def create_app(
         )
 
     def form_page(
-        submission: Submission | None = None, *, status: int = 200, error: str = ""
+        language: Language,
+        submission: Submission | None = None,
+        *,
+        status: int = 200,
+        error: str = "",
     ) -> HTMLResponse:
+        """``error``: a sentence for the whole form, or empty."""
         # A form shown again keeps the token it was sent with: a fresh one would trip the time
         # trap when someone fixes a typo and sends again within seconds.
         token = submission.token if submission else form_token.issue(settings.form_secret, clock())
         return page(
             "form.html",
+            language,
             status,
             token=token,
             values=submission,
@@ -142,9 +150,12 @@ def create_app(
             error=error,
         )
 
-    def confirmation() -> RedirectResponse:
+    def confirmation(language: Language = DEFAULT_LANGUAGE) -> RedirectResponse:
         # 303: the browser follows with a GET, so reloading the page does not post again.
-        return RedirectResponse(f"{FORM_PATH}?{SENT_QUERY}", status_code=303)
+        query = SENT_QUERY
+        if language != DEFAULT_LANGUAGE:
+            query += f"&{LANGUAGE_FIELD}={language}"
+        return RedirectResponse(f"{FORM_PATH}?{query}", status_code=303)
 
     @app.get("/api/health")
     async def health() -> JSONResponse:
@@ -152,9 +163,10 @@ def create_app(
 
     @app.get(FORM_PATH)
     async def show_form(request: Request) -> HTMLResponse:
-        if request.url.query == SENT_QUERY:
-            return page("sent.html")
-        return form_page()
+        language = from_parameter(request.query_params.get(LANGUAGE_FIELD))
+        if request.query_params.get("status") == "sent":
+            return page("sent.html", language)
+        return form_page(language)
 
     @app.get(POST_PATH)
     async def post_path_by_hand() -> RedirectResponse:
@@ -176,22 +188,24 @@ def create_app(
             return confirmation()
         submission = parse(body)
 
+        language = submission.language
+
         if submission.honeypot:
             _log("discarded", now, submission, reason="honeypot")
-            return confirmation()
+            return confirmation(language)
         if problem := form_token.check(settings.form_secret, submission.token, now):
             _log("discarded", now, submission, reason=problem.value)
-            return confirmation()
+            return confirmation(language)
         if submission.errors:
-            return form_page(submission, status=400)
+            return form_page(language, submission, status=400)
         if not senders.allow(sender, now):
             _log("discarded", now, submission, reason="sender_limit")
-            return confirmation()
+            return confirmation(language)
         # After the checks that cost nothing, so a bot they catch costs no call to Cloudflare.
         check = await request.app.state.verifier.verify(submission.turnstile)
         if check.verdict is turnstile.Verdict.FAILED:
             _log("discarded", now, submission, reason=f"turnstile: {check.detail or 'no'}")
-            return confirmation()
+            return confirmation(language)
         # Cloudflare gave no usable answer: mailed anyway, marked (see turnstile.py).
         unchecked = check.detail if check.verdict is turnstile.Verdict.UNAVAILABLE else ""
 
@@ -200,7 +214,7 @@ def create_app(
             _log("daily_limit", now, submission)
             if daily.notice_due(now):
                 await _send_notice(request.app.state.mailer, settings, now, daily)
-            return form_page(submission, status=429, error=DAILY_LIMIT)
+            return form_page(language, submission, status=429, error=TEXTS[language].daily_limit)
 
         try:
             await request.app.state.mailer.send(
@@ -209,9 +223,9 @@ def create_app(
         except SendError as error:
             daily.release(now)
             _log("send_failed", now, submission, reason=_without(submission, str(error)))
-            return form_page(submission, status=503, error=SEND_FAILED)
+            return form_page(language, submission, status=503, error=TEXTS[language].send_failed)
         _log("sent", now, submission, reason=unchecked and f"turnstile_unavailable: {unchecked}")
-        return confirmation()
+        return confirmation(language)
 
     return app
 

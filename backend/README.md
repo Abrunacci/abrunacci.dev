@@ -13,12 +13,19 @@ hello@abrunacci.dev instead.
 
 | Route | What it does |
 | --- | --- |
-| `GET /contact` | The form, with a fresh time token. |
-| `GET /contact?status=sent` | The confirmation. |
+| `GET /contact` | The form, with a fresh time token. `?lang=es` opens it in Spanish. |
+| `GET /contact?status=sent` | The confirmation (`&lang=es` in Spanish). |
 | `POST /api/contact` | Receives the form (`application/x-www-form-urlencoded`). See below. |
 | `GET /api/contact` | Redirects to the form (someone opened the post address by hand). |
 | `GET /api/health` | `200 {"status": "ok"}` while the process is up. Nothing else to check. |
 | `GET /api/static/…` | The Inter font file, the same one the landing uses, and `form.js`. |
+
+## Languages
+
+The pages are in English, or in Spanish with `?lang=es` (the link on the landing's `/es/`); any
+other value is English. Every text is in `texts.py`, one `Texts` per language. The form sends
+its language in a hidden `lang` field, so its errors, the daily-limit and send-failure messages
+and the confirmation come back in the same language. The mail and the log do not change with it.
 
 ## What happens to a message
 
