@@ -29,6 +29,7 @@ public/               copied as is to the root of the site
 dist/                 the built site (not committed)
 backend/              the contact form's service (FastAPI): serves /contact
                       and /api/*, mails each message; see backend/README.md
+docs/deploy.md        how the site and the backend are deployed
 tools/
   check_site.py       internal links and publishable-files check (used by CI)
   test_check_site.py  tests for check_site.py
@@ -80,43 +81,11 @@ together with the root domain.
 
 ## Deploy
 
-`.github/workflows/deploy.yml` publishes the site to https://abrunacci.dev on
-every push to `main`, or by hand from the Actions tab (**Run workflow**, on
-`main`):
-
-1. **Check** builds the site, runs the same checks as CI and keeps `dist/` as
-   the run's artifact.
-2. **Deploy to production** waits for approval in the `production`
-   environment. Then it sends that artifact as a tar over SSH to the server,
-   where a key that can only deploy this site publishes it as a new release.
-3. It then checks that the site serves the root and every file of `dist/`
-   byte for byte, and fails the run if not.
-
-If the checks or the upload fail, what was published before stays
-published. If only the last check fails, the new release is already live:
-fix it and push again, or roll it back on the server (`site-rollback`, run by
-the admin; CI cannot).
-
-Runs go one at a time: a run waiting for approval holds back the ones pushed
-after it, and a newer waiting run replaces an older one, so the latest push
-wins.
-
-**Before the first deploy**, the server side must be ready: this project
-(`abrunacci-dev`) in the infra repo's `projects.yml` with its `deploy_key`,
-applied, and the `production` environment set up with required reviewers,
-`main` as its only branch, and two secrets, `DEPLOY_SSH_KEY` and
-`DEPLOY_KNOWN_HOSTS`. Otherwise GitHub creates the environment on the first
-run, without protection, and the deploy fails. How to create the key and the
-secrets and how to set up the environment, and the server's rules for what a
-release may contain, are documented in the
-[infra](https://github.com/Abrunacci/infra) repo, "Deploying a project" in
-`ansible/README.md`.
-
-To redeploy an earlier commit, open its Deploy run and choose **Re-run all
-jobs**: the checks run again on that commit, with that commit's workflow, and
-it is sent as a new release. GitHub allows it for 30 days; after that, push a
-revert instead. The same applies when an approval comes more than 7 days
-late: the run's artifact is gone, so re-run all jobs.
+`.github/workflows/deploy.yml` deploys on every push to `main`, after approval
+in the `production` environment: first the backend's image, by digest, then
+`dist/` as the site. [`docs/deploy.md`](docs/deploy.md) covers the workflow,
+the image, the backend's configuration, what the server expects and what to
+do when a deploy fails.
 
 ## Development
 
