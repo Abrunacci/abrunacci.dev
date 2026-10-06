@@ -2,7 +2,8 @@
 
 Personal landing page of Alejandro Brunacci, served at https://abrunacci.dev.
 
-One static page built with [Astro](https://astro.build): the output is plain
+One static page, in English at `/` and in Spanish at `/es/`, built with
+[Astro](https://astro.build): the output is plain
 HTML with its CSS inline, one font file (Inter, self-hosted from the
 `@fontsource-variable/inter` package), one small inline script (the dots of the
 projects carousel on phones, about 0.6 KB) and no third-party requests.
@@ -11,19 +12,23 @@ projects carousel on phones, about 0.6 KB) and no third-party requests.
 
 ```
 src/
-  pages/index.astro   the page
+  pages/index.astro   the page in English, at /
+  pages/es/index.astro  the page in Spanish, at /es/
+  i18n/               every text of the page, one file per language (see
+                      CONTRIBUTING.md, "Language")
   styles/global.css   its styles, inlined into the page by the build
-  data/projects.yaml  the projects it lists
+  data/projects.yaml  the projects it lists, with a summary per language
   content.config.ts   schema of projects.yaml, checked by the build and by
                       npm run check
   components/
+    Page.astro        the page itself, in the language its route passes
     Avatar.astro      the photo, or a monogram while there is none
     Icon.astro        inline SVG icons (mail, GitHub, LinkedIn, arrow)
   assets/photo.*      the photo, optional (see below)
 public/               copied as is to the root of the site
   favicon.svg
   apple-touch-icon.png
-  og-image.png        share preview (1200×630)
+  og-image.png        share preview (1200×630), og-image-es.png in Spanish
   robots.txt          lets crawlers in and points them to the sitemap
   sitemap.xml         the pages search engines should index
 dist/                 the built site (not committed)
@@ -33,13 +38,13 @@ docs/deploy.md        how the site and the backend are deployed
 tools/
   check_site.py       internal links and publishable-files check (used by CI)
   test_check_site.py  tests for check_site.py
-  render-images.sh    renders og-image.png and apple-touch-icon.png
+  render-images.sh    renders the share images and apple-touch-icon.png
   *.html              templates for those images
 ```
 
-The availability line under the photo and the list of technologies in the
-header are constants at the top of `src/pages/index.astro`; an empty
-availability hides the line.
+The availability line under the photo is in `src/i18n/` (an empty one hides
+it); the list of technologies in the header is a constant at the top of
+`src/components/Page.astro`.
 
 `npm run build` writes the site to `dist/`, and that is what gets deployed.
 It must not contain hidden files, except `.well-known/`.
@@ -52,8 +57,9 @@ hash in every name (`photo.4f8cjK8z_Ny5af.avif`,
 
 ## Common changes
 
-- **Add a project:** add an entry to `src/data/projects.yaml`. The build
-  fails if a field is missing, unknown or not an `https://` URL. Its `stack`
+- **Add a project:** add an entry to `src/data/projects.yaml`, with its
+  summary in English and Spanish. The build fails if a field is missing,
+  unknown or not an `https://` URL. Its `stack`
   lists only what the project really uses.
 - **Add the photo:** save a square image (at least 800×800 px) as
   `src/assets/photo.jpg` (or `.jpeg`, `.png`, `.webp`, `.avif`). Nothing else
@@ -63,15 +69,18 @@ hash in every name (`photo.4f8cjK8z_Ny5af.avif`,
 - **Add a page:** list its URL in `public/sitemap.xml` if search engines
   should index it. `/contact` is left out on purpose: it is a form with
   nothing to find by searching.
+- **Change a text:** edit it in `src/i18n/en.ts` and `src/i18n/es.ts`; the
+  contact form's are in `backend/src/contact/texts.py`.
 - **Change the share image or the touch icon:** edit the templates in
-  `tools/` and run `CHROME=/path/to/chrome tools/render-images.sh` (after
+  `tools/` (the Spanish texts of the share image are in the script at the
+  end of `og-image.html`) and run `CHROME=/path/to/chrome tools/render-images.sh` (after
   `npm ci`: the templates load Inter from `node_modules/`). The favicon is
   `public/favicon.svg`, edited by hand.
 
 ## Contact form
 
-The contact buttons link to `/contact`, the form served by `backend/` (see
-`backend/README.md`); Caddy sends `/contact` and `/api/*` there, and
+The contact buttons link to `/contact` (`/contact?lang=es` on `/es/`), the
+form served by `backend/` (see `backend/README.md`); Caddy sends `/contact` and `/api/*` there, and
 everything else is this static site. The page shows no email address.
 
 The form mails each message to `hello@abrunacci.dev`. That mailbox does not

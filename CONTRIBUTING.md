@@ -40,6 +40,24 @@ common changes and the deploy.
   for borders of controls), a visible focus on everything that can be
   focused, and a text alternative for every image that carries information.
 
+## Language
+
+- Code, comments, commits, pull requests and the README are in English.
+- The page is in English at `/` and in Spanish (Argentina, with "vos") at
+  `/es/`. Nothing picks a language for the visitor: the `EN · ES` selector at
+  the top links between the two, and each one tells search engines about the
+  other (`hreflang`, and `public/sitemap.xml`).
+- Every text of the page lives in one file per language,
+  `src/i18n/en.ts` and `src/i18n/es.ts`, both with the `Texts` shape of
+  `src/i18n/texts.ts`, so the build fails when a language misses a text.
+  Project summaries are in `src/data/projects.yaml`, one per language. No
+  i18n library: `textsFor(language)` picks the file.
+- The contact form's texts are in `backend/src/contact/texts.py`, one `Texts`
+  per language. The form's heading and lead repeat the landing's contact
+  section: keep them the same.
+- Add a text to both languages in the same change. Product names and
+  technologies stay as they are.
+
 ## Dependencies
 
 - Versions are exact in `package.json` and locked in `package-lock.json`;

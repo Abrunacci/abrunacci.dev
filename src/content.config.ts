@@ -11,7 +11,8 @@ const projects = defineCollection({
       title: z.string(),
       // Language of the title, when it is not English.
       lang: z.string().min(1).optional(),
-      summary: z.string(),
+      // One per language of the page (src/i18n/language.ts).
+      summary: z.object({ en: z.string().min(1), es: z.string().min(1) }).strict(),
       // Technologies the project really uses, shown as tags.
       stack: z.array(z.string().min(1)).min(1).optional(),
       // Optional: a project with nothing public to visit shows only its text

@@ -1,0 +1,241 @@
+---
+// The whole page, in the language its route asks for: src/pages/index.astro
+// (English, at /) and src/pages/es/index.astro (Spanish, at /es/). Every text
+// comes from src/i18n/.
+import { Font } from "astro:assets";
+import { getCollection } from "astro:content";
+import Avatar from "./Avatar.astro";
+import Icon from "./Icon.astro";
+import { textsFor } from "../i18n/index.ts";
+import {
+  contactFormFor,
+  DEFAULT_LANGUAGE,
+  LANGUAGE_NAMES,
+  LANGUAGES,
+  pathFor,
+  type Language,
+} from "../i18n/language.ts";
+import "../styles/global.css";
+
+interface Props {
+  language: Language;
+}
+
+const { language } = Astro.props;
+const t = textsFor(language);
+const site = "https://abrunacci.dev";
+const url = `${site}${pathFor(language)}`;
+
+const projects = (await getCollection("projects")).sort(
+  (a, b) => a.data.order - b.data.order,
+);
+// The file loader only logs a YAML error: fail the build instead of
+// publishing a page without projects.
+if (projects.length === 0) {
+  throw new Error("No projects loaded from src/data/projects.yaml");
+}
+const repeated = projects.find(
+  (project, i) => i > 0 && project.data.order === projects[i - 1]!.data.order,
+);
+if (repeated) {
+  throw new Error(`order ${repeated.data.order} is used twice in src/data/projects.yaml`);
+}
+
+const stack = ["Python", "FastAPI", "PostgreSQL", "Databricks", "AWS", "Docker", "Terraform", "Ansible"];
+// The contact form, served by backend/ (Caddy sends /contact there).
+const contactForm = contactFormFor(language);
+const github = "https://github.com/Abrunacci";
+const linkedin = "https://www.linkedin.com/in/abrunacci/";
+// Tells search engines who the page is about (schema.org Person), so a search
+// for the name can find it and link the profiles to it.
+const person = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Alejandro Brunacci",
+  jobTitle: t.role,
+  url,
+  sameAs: [linkedin, github],
+};
+---
+
+<!DOCTYPE html>
+<html lang={language}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{t.title}</title>
+  <meta name="description" content={t.description}>
+  <meta name="author" content="Alejandro Brunacci">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href={url}>
+  {LANGUAGES.map((other) => (
+    <link rel="alternate" hreflang={other} href={`${site}${pathFor(other)}`}>
+  ))}
+  <link rel="alternate" hreflang="x-default" href={`${site}${pathFor(DEFAULT_LANGUAGE)}`}>
+
+  <meta property="og:type" content="profile">
+  <meta property="og:site_name" content="Alejandro Brunacci">
+  <meta property="og:url" content={url}>
+  <meta property="og:title" content={t.share.title}>
+  <meta property="og:description" content={t.share.description}>
+  <meta property="og:image" content={`${site}/${t.share.image}`}>
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content={t.share.imageAlt}>
+  <meta property="og:locale" content={t.ogLocale}>
+  {LANGUAGES.filter((other) => other !== language).map((other) => (
+    <meta property="og:locale:alternate" content={textsFor(other).ogLocale}>
+  ))}
+  <meta property="profile:first_name" content="Alejandro">
+  <meta property="profile:last_name" content="Brunacci">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <Font cssVariable="--font-inter" preload />
+  <script type="application/ld+json" set:html={JSON.stringify(person)} />
+</head>
+<body>
+  <div class="page">
+    {/* Links between the same page in each language. Nothing picks one for
+        the visitor. */}
+    <nav class="languages" aria-label={t.languageGroup}>
+      <ul>
+        {LANGUAGES.map((option) => (
+          <li>
+            <a
+              href={pathFor(option)}
+              hreflang={option}
+              lang={option}
+              aria-label={`${option.toUpperCase()}, ${LANGUAGE_NAMES[option]}`}
+              aria-current={option === language ? "page" : undefined}
+            >{option.toUpperCase()}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <header class="hero">
+      <Avatar />
+      {t.availability && (
+        <p class="status"><span class="status-dot" aria-hidden="true"></span>{t.availability}</p>
+      )}
+      <h1>Alejandro Brunacci</h1>
+      <p class="role">{t.role}</p>
+      <p class="tagline">{t.tagline.before}<span class="mark">{t.tagline.mark}</span>{t.tagline.after}</p>
+      <p class="location">{t.location.slice(0, -1).map((part) => `${part} · `)}<span class="nowrap">{t.location.at(-1)}</span></p>
+      <div class="actions">
+        <a class="btn btn--primary" href={contactForm}><Icon name="mail" /><span>{t.emailMe}</span></a>
+        <a class="btn btn--secondary" href={github}><Icon name="github" /><span>{t.profile.before && <span class="visually-hidden">{t.profile.before}</span>}GitHub{t.profile.after && <span class="visually-hidden">{t.profile.after}</span>}</span></a>
+        <a class="btn btn--secondary" href={linkedin}><Icon name="linkedin" /><span>{t.profile.before && <span class="visually-hidden">{t.profile.before}</span>}LinkedIn{t.profile.after && <span class="visually-hidden">{t.profile.after}</span>}</span></a>
+      </div>
+      <ul class="stack" aria-label={t.technologies}>
+        {stack.map((item) => <li>{item}</li>)}
+      </ul>
+    </header>
+
+    <main>
+      <section class="about" aria-labelledby="about-title">
+        <p class="eyebrow" aria-hidden="true">{t.about.eyebrow}</p>
+        <h2 id="about-title">{t.about.title}</h2>
+        <p class="about-lead">{t.about.lead}</p>
+        <ul class="about-points">
+          {t.about.points.map((point) => <li>{point}</li>)}
+        </ul>
+      </section>
+
+      <section aria-labelledby="projects-title">
+        <p class="eyebrow" aria-hidden="true">{t.projects.eyebrow}</p>
+        <h2 id="projects-title">{t.projects.title}</h2>
+        {/* Projects come from src/data/projects.yaml. On phones the list is a
+            carousel that scrolls sideways (see global.css). */}
+        <ul class="projects" aria-labelledby="projects-title">
+          {projects.map(({ data: project }) => {
+            // Only a title in another language than the page's needs its
+            // own lang.
+            const titleLang = project.lang !== language ? project.lang : undefined;
+            const title = titleLang
+              ? <span lang={titleLang}>{project.title}</span>
+              : project.title;
+            return (
+              <li class="project">
+                <h3 lang={titleLang}>{project.title}</h3>
+                <p class="project-summary">{project.summary[language]}</p>
+                {project.stack && (
+                  <ul class="tags" aria-label={t.projects.builtWith}>
+                    {project.stack.map((item) => <li>{item}</li>)}
+                  </ul>
+                )}
+                {project.links && (
+                  <p class="project-links">
+                    {project.links.live && (
+                      <a class="btn btn--tonal" href={project.links.live}><span>{t.projects.liveSite}<span class="visually-hidden">{t.projects.liveSiteOf}{title}</span></span><Icon name="arrow-up-right" size={16} /></a>
+                    )}
+                    {project.links.source && (
+                      <a class="link" href={project.links.source}><Icon name="github" /><span>{t.projects.sourceCode}<span class="visually-hidden">{t.projects.sourceCodeOf}{title}</span></span></a>
+                    )}
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {/* Which card the carousel shows. Hidden until the script below runs;
+            screen readers already hear the list and its length. */}
+        <div class="carousel-dots" aria-hidden="true" hidden>
+          {projects.map(() => <span class="carousel-dot"></span>)}
+        </div>
+      </section>
+
+      <section id="contact" class="contact" aria-labelledby="contact-title">
+        <p class="eyebrow" aria-hidden="true">{t.contact.eyebrow}</p>
+        <h2 id="contact-title">{t.contact.title}</h2>
+        <p class="contact-text">{t.contact.text}</p>
+        <div class="actions">
+          <a class="btn btn--primary btn--lg" href={contactForm}><Icon name="mail" /><span>{t.contact.button}</span></a>
+          <a class="btn btn--secondary" href={github}><Icon name="github" /><span>{t.profile.before && <span class="visually-hidden">{t.profile.before}</span>}GitHub{t.profile.after && <span class="visually-hidden">{t.profile.after}</span>}</span></a>
+          <a class="btn btn--secondary" href={linkedin}><Icon name="linkedin" /><span>{t.profile.before && <span class="visually-hidden">{t.profile.before}</span>}LinkedIn{t.profile.after && <span class="visually-hidden">{t.profile.after}</span>}</span></a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>© {new Date().getFullYear()} Alejandro Brunacci</p>
+    </footer>
+  </div>
+  <script>
+    // The projects carousel (phones only): marks the dot of the card in view,
+    // and lets the keyboard focus the list to scroll it with the arrow keys.
+    const list = document.querySelector<HTMLElement>(".projects");
+    const dotsBox = document.querySelector<HTMLElement>(".carousel-dots");
+    if (list && dotsBox && "IntersectionObserver" in window) {
+      const cards = [...list.children];
+      const dots = [...dotsBox.children];
+      const visible = new Map<Element, number>();
+      const observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) visible.set(entry.target, entry.intersectionRatio);
+          // The card that shows the most is the current one.
+          let current = 0;
+          cards.forEach((card, i) => {
+            if ((visible.get(card) ?? 0) > (visible.get(cards[current]!) ?? 0)) current = i;
+          });
+          dots.forEach((dot, i) => dot.classList.toggle("is-current", i === current));
+        },
+        { root: list, threshold: [0, 0.25, 0.5, 0.75, 1] },
+      );
+      cards.forEach((card) => observer.observe(card));
+
+      const phone = matchMedia("(max-width: 43.99rem)");
+      const setFocusable = () => {
+        if (phone.matches) list.tabIndex = 0;
+        else list.removeAttribute("tabindex");
+      };
+      setFocusable();
+      phone.addEventListener("change", setFocusable);
+      dotsBox.hidden = false;
+    }
+  </script>
+</body>
+</html>

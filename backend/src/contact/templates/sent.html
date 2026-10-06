@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Message received{% endblock %}
+{% block title %}{{ t.sent_title }}{% endblock %}
 {% block meta %}
   <meta name="robots" content="noindex">
 {% endblock %}
@@ -7,8 +7,8 @@
     .actions { margin-top: 2rem; }
 {% endblock %}
 {% block main %}
-      <p class="eyebrow">Get in touch</p>
-      <h1>Thanks, I got your message</h1>
-      <p class="lead">I'll get back to you by email.</p>
-      <p class="actions"><a class="btn btn--secondary" href="{{ site_url }}/">Back to abrunacci.dev</a></p>
+      <p class="eyebrow">{{ t.eyebrow }}</p>
+      <h1>{{ t.sent_heading }}</h1>
+      <p class="lead">{{ t.sent_lead }}</p>
+      <p class="actions"><a class="btn btn--secondary" href="{{ site_url }}{{ t.home }}">{{ t.back }}</a></p>
 {% endblock %}

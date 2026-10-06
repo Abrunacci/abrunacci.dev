@@ -417,3 +417,77 @@ def test_the_font_is_served(form: Form) -> None:
     response = form.client.get("/api/static/inter-latin-wght-normal-5.3.0.woff2")
     assert response.status_code == 200
     assert response.content[:4] == b"wOF2"
+
+
+# Spanish: /contact?lang=es, opened from the landing's /es/. The hidden "lang" field carries the
+# language with the message, so everything that comes back is in Spanish too.
+
+SENT_ES = "/contact?status=sent&lang=es"
+
+
+def test_the_form_in_spanish(form: Form) -> None:
+    page = form.client.get("/contact?lang=es").text
+    assert '<html lang="es">' in page
+    assert "<title>Contacto · Alejandro Brunacci</title>" in page
+    assert "<h1>¿Necesitás un desarrollador senior?</h1>" in page
+    assert '<label for="name">Nombre</label>' in page
+    assert '<input type="hidden" name="lang" value="es">' in page
+    assert 'data-language="es"' in page
+    assert 'type="submit" disabled>Enviar mensaje</button>' in page
+    assert (
+        'id="alternative" hidden>También podés escribirme directo a '
+        '<a href="mailto:hello@abrunacci.dev">hello@abrunacci.dev</a>.</p>'
+    ) in page
+    assert '<a class="back" href="https://abrunacci.dev/es/">' in page
+
+
+def test_the_form_in_english_by_default(form: Form) -> None:
+    for path in ("/contact", "/contact?lang=fr", "/contact?lang="):
+        page = form.client.get(path).text
+        assert '<html lang="en">' in page
+        assert '<input type="hidden" name="lang" value="en">' in page
+        assert '<a class="back" href="https://abrunacci.dev/">' in page
+
+
+def test_a_good_message_in_spanish(form: Form, caplog: pytest.LogCaptureFixture) -> None:
+    assert form.send(lang="es") == (303, SENT_ES, "")
+    assert len(form.mailer.sent) == 1
+    [event] = events(caplog)
+    assert event.keys() == {"event", "id", "time", "length"}
+    page = form.client.get(SENT_ES).text
+    assert "<h1>Gracias, me llegó tu mensaje</h1>" in page
+    assert 'href="https://abrunacci.dev/es/">Volver a abrunacci.dev</a>' in page
+
+
+def test_bots_get_the_same_confirmation_in_spanish(form: Form) -> None:
+    assert form.send(lang="es", website="spam")[:2] == (303, SENT_ES)
+    assert form.mailer.sent == []
+
+
+def test_errors_in_spanish(form: Form) -> None:
+    status, _, body = form.send(lang="es", email="not-an-address", message="x" * 5001)
+    assert status == 400
+    assert "Revisá los campos marcados abajo." in body
+    assert "Escribí un email válido, como nombre@empresa.com." in body
+    assert "Usá menos de 5.000 caracteres para el mensaje." in body
+    assert '<input type="hidden" name="lang" value="es">' in body
+
+
+def test_past_the_daily_limit_in_spanish(form: Form) -> None:
+    form.clock.now = datetime(2026, 10, 2, tzinfo=LOCAL_TIME).timestamp()
+    for _ in range(MAILS_PER_DAY):
+        form.clock.now += 3600
+        form.send()
+    form.clock.now += 3600
+    status, _, body = form.send(lang="es", message="Mi mensaje")
+    assert status == 429
+    assert "El formulario llegó a su límite por hoy. Probá de nuevo mañana." in body
+    assert "Mi mensaje" in body
+
+
+def test_send_failure_in_spanish(form: Form) -> None:
+    form.mailer.failing = True
+    status, _, body = form.send(lang="es", message="Mi mensaje")
+    assert status == 503
+    assert "No se pudo enviar tu mensaje. Probá de nuevo en unos minutos." in body
+    assert "Mi mensaje" in body

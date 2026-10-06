@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Contact{% endblock %}
+{% block title %}{{ t.title }}{% endblock %}
 {% block meta %}
-  <meta name="description" content="Write to Alejandro Brunacci, Senior Software Engineer.">
+  <meta name="description" content="{{ t.description }}">
 {% endblock %}
 {% block style %}
     .form {
@@ -107,23 +107,24 @@
   <script src="/api/static/form.js" defer></script>
 {% endblock %}
 {% block main %}
-      <p class="eyebrow">Get in touch</p>
-      <h1>Need a senior engineer?</h1>
-      <p class="lead">Tell me about your product, your team and what you need built.</p>
+      <p class="eyebrow">{{ t.eyebrow }}</p>
+      <h1>{{ t.heading }}</h1>
+      <p class="lead">{{ t.lead }}</p>
       {% if error %}
       <p class="alert" role="alert">{{ error }}</p>
       {% elif errors %}
-      <p class="alert" role="alert">Please check the fields marked below.</p>
+      <p class="alert" role="alert">{{ t.check_fields }}</p>
       {% endif %}
       <form class="form" method="post" action="{{ post_path }}">
         <input type="hidden" name="{{ token_field }}" value="{{ token }}">
-        {% for field, label, type, autocomplete in [
-          ("name", "Name", "text", "name"),
-          ("email", "Email", "email", "email"),
-          ("message", "Message", None, None),
+        <input type="hidden" name="{{ language_field }}" value="{{ t.language }}">
+        {% for field, type, autocomplete in [
+          ("name", "text", "name"),
+          ("email", "email", "email"),
+          ("message", None, None),
         ] %}
         <div class="field">
-          <label for="{{ field }}">{{ label }}</label>
+          <label for="{{ field }}">{{ t.labels[field] }}</label>
           {% if type %}
           <input id="{{ field }}" name="{{ field }}" type="{{ type }}" autocomplete="{{ autocomplete }}" required maxlength="{{ limits[field] }}"
             {%- if values %} value="{{ values[field] }}"{% endif %}
@@ -135,21 +136,22 @@
           </textarea>
           {% endif %}
           {% if errors[field] %}
-          <p class="field-error" id="{{ field }}-error">{{ errors[field] }}</p>
+          <p class="field-error" id="{{ field }}-error">{{ t.errors[(field, errors[field])] }}</p>
           {% endif %}
         </div>
         {% endfor %}
         <div class="trap" aria-hidden="true">
-          <label for="{{ honeypot_field }}">Leave this field empty</label>
+          <label for="{{ honeypot_field }}">{{ t.honeypot }}</label>
           <input id="{{ honeypot_field }}" name="{{ honeypot_field }}" type="text" tabindex="-1" autocomplete="off">
         </div>
-        {# Managed, shown only when Cloudflare needs a click. The callbacks are in form.js. #}
-        <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-action="contact"
+        {# Managed, shown only when Cloudflare needs a click, in the page's language. The
+           callbacks are in form.js. #}
+        <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-action="contact" data-language="{{ t.language }}"
           data-appearance="interaction-only" data-callback="turnstileReady"
           data-expired-callback="turnstileExpired" data-timeout-callback="turnstileExpired"
           data-error-callback="turnstileFailed"></div>
-        <button class="btn btn--primary" type="submit" disabled>Send message</button>
+        <button class="btn btn--primary" type="submit" disabled>{{ t.send }}</button>
       </form>
       {# Shown without JavaScript, or by form.js when the widget fails. #}
-      <p class="alternative" id="alternative" hidden>You can also write to me directly at <a href="mailto:{{ contact_address }}">{{ contact_address }}</a>.</p>
+      <p class="alternative" id="alternative" hidden>{{ t.alternative }} <a href="mailto:{{ contact_address }}">{{ contact_address }}</a>.</p>
 {% endblock %}

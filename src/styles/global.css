@@ -112,9 +112,46 @@ a:focus-visible {
 }
 
 .page {
+  position: relative;
   max-width: 60rem;
   margin: 0 auto;
   padding: 0 1.25rem;
+}
+
+/* The language selector, top right, in the header's top padding. Above the
+   photo's halo, which reaches up there on phones. */
+.languages {
+  position: absolute;
+  z-index: 1;
+  top: 0.75rem;
+  right: 1rem;
+}
+
+.languages ul {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.languages a {
+  display: grid;
+  place-items: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+.languages a:hover {
+  color: var(--text);
+}
+
+.languages a[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
 /* Buttons and links: one primary action (the contact form), secondary ones with a

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Renders the share image and the touch icon from the HTML templates in this
-# directory into public/. Needs a Chromium or Chrome binary:
+# Renders the share images (one per language) and the touch icon from the HTML
+# templates in this directory into public/. Needs a Chromium or Chrome binary:
 #   CHROME=/path/to/chrome tools/render-images.sh
 set -euo pipefail
 
@@ -21,4 +21,5 @@ render() {
 }
 
 render og-image.html public/og-image.png 1200,630
+render "og-image.html?lang=es" public/og-image-es.png 1200,630
 render apple-touch-icon.html public/apple-touch-icon.png 180,180

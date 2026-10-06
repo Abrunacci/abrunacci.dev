@@ -1,16 +1,23 @@
 # Projects shown on the landing page, sorted by `order` (lower first).
-# Fields: id, title, lang (of the title, if not English), summary, stack
-# (optional), links.live and/or links.source (optional: leave links out when
-# there is nothing public to visit), order. The build fails on unknown fields.
+# Fields: id, title, lang (of the title, if not English), summary (summary.en
+# and summary.es, one per language of the page), stack (optional), links.live
+# and/or links.source (optional: leave links out when there is nothing public
+# to visit), order. The build fails on unknown or missing fields.
 
 - id: cuanto-cuesta
   title: ¿Cuánto cuesta?
   lang: es
-  summary: >-
-    Compares the routes for turning US dollars in Payoneer into Argentine
-    pesos, with the fees of every step, to show which one leaves you the most.
-    Its Python API stores the day's prices and prefills them. In Spanish and
-    English.
+  summary:
+    en: >-
+      Compares the routes for turning US dollars in Payoneer into Argentine
+      pesos, with the fees of every step, to show which one leaves you the most.
+      Its Python API stores the day's prices and prefills them. In Spanish and
+      English.
+    es: >-
+      Compara las formas de pasar dólares de Payoneer a pesos argentinos, con
+      las comisiones de cada paso, para mostrar cuál te deja más. Su API en
+      Python guarda las cotizaciones del día y se actualiza sola. En español e
+      inglés.
   # Backend first: what the project shows about backend work.
   stack: [Python, FastAPI, PostgreSQL, TypeScript, React, Vite]
   links:
@@ -20,12 +27,19 @@
 
 - id: berry-med
   title: Berry Med
-  summary: >-
-    Software for health-check kiosks, built for a client. It connects the
-    client's backend with the medical devices in each kiosk: it reads vital
-    signs over USB or Bluetooth (blood oxygen, pulse, blood pressure,
-    temperature and a 7-lead ECG), sends them during each check and reports
-    each kiosk's status.
+  summary:
+    en: >-
+      Software for health-check kiosks, built for a client. It connects the
+      client's backend with the medical devices in each kiosk: it reads vital
+      signs over USB or Bluetooth (blood oxygen, pulse, blood pressure,
+      temperature and a 7-lead ECG), sends them during each check and reports
+      each kiosk's status.
+    es: >-
+      Software para tótems de chequeo de salud, hecho para un cliente. Conecta
+      el backend del cliente con los dispositivos médicos de cada tótem: lee
+      signos vitales por USB o Bluetooth (oxígeno en sangre, pulso, presión,
+      temperatura y un ECG de 7 derivaciones), los envía durante cada chequeo
+      e informa el estado de cada tótem.
   stack: [Python, asyncio, pyserial, Bleak, Pusher, PyInstaller]
   # No live site: the software needs the kiosk's hardware to run.
   links:
@@ -34,19 +48,28 @@
 
 - id: epb-stock
   title: EPB Stock
-  summary: >-
-    Stock control for retail shops: a product with a FastAPI backend and
-    PostgreSQL.
+  summary:
+    en: >-
+      Stock control for retail shops: a product with a FastAPI backend and
+      PostgreSQL.
+    es: >-
+      Control de stock para comercios: un producto con backend en FastAPI y
+      PostgreSQL.
   stack: [Python, FastAPI, PostgreSQL]
   # No links: the repository is private and the site is only a login.
   order: 20
 
 - id: data-pipeline
   title: data-pipeline
-  summary: >-
-    Collects market data on a schedule, checks each value and sends it to the
-    app that uses it. Today it feeds ¿Cuánto cuesta? the exchange rates it
-    needs.
+  summary:
+    en: >-
+      Collects market data on a schedule, checks each value and sends it to the
+      app that uses it. Today it feeds ¿Cuánto cuesta? the exchange rates it
+      needs.
+    es: >-
+      Junta datos de mercado cada cierto tiempo, valida cada valor y los manda
+      a la app que los usa. Hoy le pasa a ¿Cuánto cuesta? las cotizaciones que
+      necesita.
   stack: [Python, Pydantic, httpx, Docker]
   links:
     source: https://github.com/Abrunacci/data-pipeline
@@ -54,9 +77,13 @@
 
 - id: infra
   title: infra
-  summary: >-
-    Infrastructure as code for the server that hosts these projects: Terraform
-    and Ansible on DigitalOcean and Cloudflare.
+  summary:
+    en: >-
+      Infrastructure as code for the server that hosts these projects: Terraform
+      and Ansible on DigitalOcean and Cloudflare.
+    es: >-
+      Infraestructura como código para el servidor donde corren estos
+      proyectos: Terraform y Ansible sobre DigitalOcean y Cloudflare.
   stack: [Terraform, Ansible, Docker Compose, Caddy, PostgreSQL]
   links:
     source: https://github.com/Abrunacci/infra
